@@ -33,6 +33,12 @@
     .dataset-title { margin: 0; color: var(--brand-primary); }
     .dataset-subtitle { margin: 0.2rem 0 0.4rem; color: var(--muted); font-size: 0.95rem; }
     .dataset-info { font-size: 0.95rem; color: #333; }
+    .dataset-info p { margin: 0.25rem 0; }
+    .dataset-info code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: #f1f3f5; padding: 0 .25rem; border-radius: 4px; }
+
+    /* Toggle below description, above filters */
+    .dataset-toggle-wrap { padding: 0.8rem 1rem; background: var(--soft); border-bottom: 1px solid var(--border); }
+    .dataset-body.is-collapsed { display: none; }
 
     .controls { display: flex; gap: 0.75rem; align-items: center; padding: 0.8rem 1rem; background: var(--soft); border-bottom: 1px solid var(--border); }
     .controls input[type="search"], .controls select { padding: 0.55rem 0.7rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; background: #fff; }
@@ -97,25 +103,67 @@
 
     function parseData(){ try{ return JSON.parse($('#dataset-json').textContent.trim())||[] }catch(e){ return []; } }
     function escapeHTML(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
-    function csvEscape(v){ const s=String(v).replace(/\r?\n/g,' '); return (s.includes(',')||s.includes('"'))? '"'+s.replace(/"/g,'""')+'"': s; }
+    function csvEscape(v){ const s=String(v).replace(/\r?\n/g,' '); return (s.includes(',')||s.includes('"'))? '"'+s.replace(/"/g,'\"\"')+'"': s; }
 
-    function toCSVRecord(ds,v){ return { dataset_id:ds.id, dataset_title:ds.title||ds.id, variable_name:v.name, label:v.label||'', source_variable_name:v.source||'', type:v.type||'', category:(v.categories||[]).join('|'), notes:v.notes||'' }; }
+    // --- Minimal inline Markdown renderer for ds.info paragraphs ---
+    // Supports: `code`, **strong**, *emphasis*, __strong__, _emphasis_, ~~strike~~,
+    // [text](url), and auto-linking bare http(s) URLs. Allows lightweight HTML already in text.
+    function markdownToHtml(input){
+      if (input == null) return '';
+      let html = String(input);
 
-    function computeCategoryCounts(ds){ const m=new Map(); for(const v of Object.values(ds.var_map||{})){ for(const c of (v.categories||[])){ m.set(c,(m.get(c)||0)+1);} } return Array.from(m.entries()).sort((a,b)=>a[0].localeCompare(b[0])); }
+      // 1) Markdown links [text](url)
+      html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (m, text, url) => {
+        return `<a href="${url}" target="_blank" rel="noopener">${escapeHTML(text)}</a>`;
+      });
+
+      // 2) Inline code `code` (escape inner)
+      html = html.replace(/`([^`]+)`/g, (m, code) => `<code>${escapeHTML(code)}</code>`);
+
+      // 3) Bold/italic/strike (order matters: strong before em)
+      html = html.replace(/\*\*(?=\S)(.+?)(?<=\S)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/__(?=\S)(.+?)(?<=\S)__/g, '<strong>$1</strong>');
+      html = html.replace(/(?<!\*)\*(?=\S)(.+?)(?<=\S)(?<!\*)\*/g, '<em>$1</em>');
+      html = html.replace(/_(?=\S)(.+?)(?<=\S)_/g, '<em>$1</em>');
+      html = html.replace(/~~(?=\S)(.+?)(?<=\S)~~/g, '<del>$1</del>');
+
+      // 4) Auto-link bare URLs (skip those already inside an href)
+      html = html.replace(/(^|[\s(>])((https?:\/\/[^\s<>"')]+))(?=[\s<)"']|$)/g,
+        (m, pre, url) => `${pre}<a href="${url}" target="_blank" rel="noopener">${url}</a>`);
+
+      // Keep lightweight HTML such as <br> as-is.
+      return html;
+    }
+
+    function toCSVRecord(ds,v){ return {
+      dataset_id:ds.id,
+      dataset_title:ds.title||ds.id,
+      variable_name:v.name,
+      label:v.label||'',
+      source_variable_name:v.source||'',
+      type:v.type||'',
+      category:(v.categories||[]).join('|'),
+      notes:v.notes||''
+    }; }
+
+    function computeCategoryCounts(ds){
+      const m=new Map();
+      for(const v of Object.values(ds.var_map||{})){
+        for(const c of (v.categories||[])){ m.set(c,(m.get(c)||0)+1); }
+      }
+      return Array.from(m.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
+    }
 
     function isGroup(v){ return !!v.is_group; }
-
     function isGroupFullySelected(ds, group){
       return (group.members||[]).every(name => state.selected.has(ds.id+'::'+name));
     }
-
     function selectGroup(ds, group){
       (group.members||[]).forEach(name=>{
         const leaf = (ds.var_map||{})[name];
         if(leaf){ state.selected.set(ds.id+'::'+name, toCSVRecord(ds, leaf)); }
       });
     }
-
     function deselectGroup(ds, group){
       (group.members||[]).forEach(name=> state.selected.delete(ds.id+'::'+name));
     }
@@ -127,19 +175,39 @@
         const section = document.createElement('section');
         section.className='dataset-card'; section.dataset.datasetId = ds.id;
 
+        // Header with Markdown-enabled info paragraphs
         const header = document.createElement('div'); header.className='dataset-header';
+        const infoHTML = ds.info
+          ? `<div class="dataset-info">
+               ${ds.info.map(p => `<p>${markdownToHtml(p)}</p>`).join('')}
+             </div>`
+          : '';
         header.innerHTML=`
           <h2 class="dataset-title">${escapeHTML(ds.title||ds.id)}</h2>
           ${ds.subtitle?`<div class="dataset-subtitle">${escapeHTML(ds.subtitle)}</div>`:''}
-          ${ds.info?`<div class="dataset-info">${escapeHTML(ds.info)}</div>`:''}`;
+          ${infoHTML}`;
         section.appendChild(header);
+
+        // Toggle button below description, above filters/table
+        const toggleWrap = document.createElement('div'); toggleWrap.className='dataset-toggle-wrap';
+        toggleWrap.innerHTML = `
+          <button class="btn dataset-toggle"
+                  data-role="toggle-dataset"
+                  data-dataset-id="${escapeHTML(ds.id)}"
+                  aria-expanded="false">
+            Show variables
+          </button>`;
+        section.appendChild(toggleWrap);
+
+        // Collapsible body: controls + table (hidden initially)
+        const body = document.createElement('div'); body.className='dataset-body is-collapsed'; body.id = `body-${ds.id}`;
 
         const controls = document.createElement('div'); controls.className='controls';
         controls.innerHTML=`
           <input type="search" placeholder="Search… (label, variable, notes)" aria-label="Search variables">
           <select data-role="filterCat" aria-label="Filter by category"><option value="">All categories</option></select>
           <div class="info">${ds.variables.length} items</div>`;
-        section.appendChild(controls);
+        body.appendChild(controls);
 
         const tableWrap = document.createElement('div'); tableWrap.className='table-wrap';
         tableWrap.innerHTML=`
@@ -154,27 +222,48 @@
             </tr></thead>
             <tbody></tbody>
           </table>`;
-        section.appendChild(tableWrap);
+        body.appendChild(tableWrap);
 
+        section.appendChild(body);
+
+        // Populate category filter
         const catCounts = computeCategoryCounts(ds);
         const ddl = controls.querySelector('select[data-role="filterCat"]');
         for(const [cat,_] of catCounts){ const opt=document.createElement('option'); opt.value=cat; opt.textContent=cat; ddl.appendChild(opt); }
 
-        const tbody = section.querySelector('tbody');
+        // Render variable rows
+        const tbody = body.querySelector('tbody');
         ds.variables.forEach(v=>{
           v._search = [v.label, v.name, v.notes, ...(v.members||[])].filter(Boolean).join(' ');
           tbody.appendChild(renderRow(ds, v));
         });
 
+        // Wire search/filter
         const search = controls.querySelector('input[type="search"]');
         search.addEventListener('input', ()=>applyFilter(section, ds));
         ddl.addEventListener('change', ()=>applyFilter(section, ds));
-        section.querySelector('[data-action="toggle-all"]').addEventListener('change', (e)=>{
-          const rows = $all('tbody tr', section).filter(r=>r.style.display!=='none');
-          rows.forEach(r=>{ const cb=r.querySelector('input[type="checkbox"]'); cb.checked=e.target.checked; cb.dispatchEvent(new Event('change')); });
+
+        // Select-all (visible rows only)
+        body.querySelector('[data-action="toggle-all"]').addEventListener('change', (e)=>{
+          const rows = $all('tbody tr', body).filter(r=>r.style.display!=='none');
+          rows.forEach(r=>{
+            const cb=r.querySelector('input[type="checkbox"]');
+            cb.checked=e.target.checked;
+            cb.dispatchEvent(new Event('change'));
+          });
         });
 
-        document.getElementById('app').appendChild(section);
+        // Toggle behavior
+        const btn = toggleWrap.querySelector('button[data-role="toggle-dataset"]');
+        btn.addEventListener('click', ()=>{
+          const expanded = btn.getAttribute('aria-expanded') === 'true';
+          const next = !expanded;
+          btn.setAttribute('aria-expanded', String(next));
+          btn.textContent = next ? 'Hide variables' : 'Show variables';
+          body.classList.toggle('is-collapsed', !next);
+        });
+
+        app.appendChild(section);
       });
 
       updateCartUI();
@@ -186,7 +275,7 @@
       tr.dataset.key = key;
 
       const labelText = v.is_group ? `${v.label} (${(v.members||[]).length} fields)` : (v.label || v.name);
-      const catsHTML = `<div class="chips">${(v.categories||[]).map(c=>`<span class=\"chip\">${escapeHTML(c)}</span>`).join('')}</div>`;
+      const catsHTML = `<div class="chips">${(v.categories||[]).map(c=>`<span class="chip">${escapeHTML(c)}</span>`).join('')}</div>`;
 
       tr.innerHTML = `
         <td><input type="checkbox" aria-label="Select ${escapeHTML(labelText)}"></td>
@@ -209,7 +298,7 @@
           if (cb.checked) state.selected.set(key, toCSVRecord(ds, v)); else state.selected.delete(key);
         }
         updateCartUI();
-        // Refresh all group checkboxes in this dataset
+        // Refresh group checkboxes in this dataset
         const rows = $all('tbody tr', tr.closest('section'));
         rows.forEach(row=>{
           const k = row.dataset.key; const vv = (ds._byRow||{})[k];
@@ -229,7 +318,9 @@
         const v = (ds._byRow||{})[r.dataset.key];
         const blob = (v._search||'').toLowerCase();
         const hit = !q || blob.includes(q);
-        const catOk = !cat || (v.categories||[]).includes(cat) || (v.is_group && (v.members||[]).some(name => (ds.var_map[name]||{}).categories?.includes(cat)));
+        const catOk = !cat
+          || (v.categories||[]).includes(cat)
+          || (v.is_group && (v.members||[]).some(name => (ds.var_map[name]||{}).categories?.includes(cat)));
         r.style.display = (hit && catOk) ? '' : 'none';
       });
       section.querySelector('[data-action="toggle-all"]').checked = false;
@@ -243,12 +334,21 @@
     function downloadCSV(){
       const rows = Array.from(state.selected.values()); if (!rows.length) return;
       const headers=['dataset_id','dataset_title','variable_name','label','source_variable_name','type','category','notes'];
-      const csv=[headers.join(',')].concat(rows.map(r=>headers.map(h=>csvEscape(r[h]??'')).join(','))).join('\n');
-      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');
-      a.href=url; a.download='predict_variables.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      const csv=[headers.join(',')]
+        .concat(rows.map(r=>headers.map(h=>csvEscape(r[h]??'')).join(',')))
+        .join('\n');
+      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download='predict_variables.csv';
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
     }
 
-    function clearSelection(){ state.selected.clear(); document.querySelectorAll('tbody input[type="checkbox"]').forEach(cb=>cb.checked=false); updateCartUI(); }
+    function clearSelection(){
+      state.selected.clear();
+      document.querySelectorAll('tbody input[type="checkbox"]').forEach(cb=>cb.checked=false);
+      updateCartUI();
+    }
 
     window.addEventListener('DOMContentLoaded', ()=>{
       state.datasets = parseData();
