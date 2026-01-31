@@ -14,24 +14,29 @@
       --bg: #fff;
       --soft: #f6f8fa;
       --border: #e1e4e8;
+      --chip-bg: #eef6ff;
+      --chip-border: #cfe2ff;
     }
     * { box-sizing: border-box; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin:0; color:var(--text); background:var(--bg); }
     header { background: var(--brand-primary); color: white; padding: 1.5rem 1rem; }
-    header .container { max-width: 1100px; margin: 0 auto; }
+    header .container { max-width: 1200px; margin: 0 auto; }
     h1 { margin: 0; font-weight: 700; letter-spacing: 0.3px; }
     .subtitle { margin-top: 0.25rem; color: #dfe7f2; }
-    main { max-width: 1100px; margin: 1.25rem auto; padding: 0 1rem 3rem; }
-    .dataset-card { border: 1px solid var(--border); border-radius: 8px; background: var(--soft); margin-bottom: 1.25rem; }
-    .dataset-header { padding: 1rem 1rem 0.75rem; border-bottom: 1px solid var(--border); background: #fff; border-radius: 8px 8px 0 0; }
+    main { max-width: 1200px; margin: 1.25rem auto; padding: 0 1rem 3rem; }
+
+    .dataset-card { border: 1px solid var(--border); border-radius: 10px; background: var(--soft); margin-bottom: 1.25rem; overflow: hidden; }
+    .dataset-header { padding: 1rem 1rem 0.75rem; border-bottom: 1px solid var(--border); background: #fff; }
     .dataset-title { margin: 0; color: var(--brand-primary); }
     .dataset-subtitle { margin: 0.2rem 0 0.4rem; color: var(--muted); font-size: 0.95rem; }
     .dataset-info { font-size: 0.95rem; color: #333; }
 
     .controls { display: flex; gap: 0.75rem; align-items: center; padding: 0.8rem 1rem; background: var(--soft); border-bottom: 1px solid var(--border); }
-    .controls input[type="search"] { flex: 1; padding: 0.55rem 0.7rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; }
+    .controls input[type="search"], .controls select { padding: 0.55rem 0.7rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; background: #fff; }
+    .controls input[type="search"] { flex: 1; }
     .controls .info { color: var(--muted); font-size: 0.9rem; }
 
+    .table-wrap { overflow-x: auto; background:#fff; }
     table { width: 100%; border-collapse: collapse; background: #fff; }
     thead th { text-align: left; font-weight: 600; font-size: 0.9rem; color: var(--muted); padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--border); background: #fafbfc; }
     tbody td { padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--border); vertical-align: top; }
@@ -40,19 +45,17 @@
     .var-notes { color: var(--muted); font-size: 0.9rem; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.9rem; }
 
+    .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--chip-border); background: var(--chip-bg); font-size: 12px; color: #0f3b74; }
+
     .cart { position: sticky; top: 0; z-index: 2; background: #fff; border-bottom: 1px solid var(--border); }
-    .cart .container { max-width: 1100px; margin: 0 auto; padding: 0.5rem 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
+    .cart .container { max-width: 1200px; margin: 0 auto; padding: 0.5rem 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
     .tag { background: var(--soft); border: 1px solid var(--border); border-radius: 999px; padding: 0.25rem 0.6rem; font-size: 0.85rem; }
     .btn { appearance: none; background: var(--brand-primary); color:#fff; border: none; border-radius: 6px; padding: 0.5rem 0.8rem; cursor: pointer; }
     .btn.secondary { background: var(--brand-secondary); }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    footer { max-width: 1100px; margin: 2rem auto; padding: 0 1rem 3rem; color: var(--muted); font-size: 0.9rem; }
-    details { margin-top: 0.35rem; }
-
-    @media (max-width: 720px) {
-      .hide-sm { display: none; }
-    }
+    footer { max-width: 1200px; margin: 2rem auto; padding: 0 1rem 3rem; color: var(--muted); font-size: 0.9rem; }
   </style>
 </head>
 <body>
@@ -73,217 +76,193 @@
     </div>
   </div>
 
-  <main id="app">
-    <!-- Datasets will be rendered here -->
-  </main>
+  <main id="app"></main>
 
-  <!-- Inlined normalized data from build.py -->
   <script id="dataset-json" type="application/json">{{ data_json | safe }}</script>
 
   <script>
   (function(){
-    const state = {
-      datasets: [],
-      selected: new Map(), // key: compound id (datasetId::varName), value: record
-    };
+    const state = { datasets: [], selected: new Map() };
+    function $(s, r=document){ return r.querySelector(s); }
+    function $all(s, r=document){ return Array.from(r.querySelectorAll(s)); }
+    function parseData(){ try{ return JSON.parse($('#dataset-json').textContent.trim())||[] }catch(e){ return []; } }
+    function escapeHTML(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
+    function csvEscape(v){ const s=String(v).replace(/\r?\n/g,' '); return (s.includes(',')||s.includes('"'))? '"'+s.replace(/"/g,'""')+'"': s; }
+    function toCSVRecord(ds,v){ return {dataset_id:ds.id,dataset_title:ds.title||ds.id,variable_name:v.name,label:v.label||'',source_variable_name:v.source||'',type:v.type||'',category:(v.categories||[]).join('|'),notes:v.notes||''}; }
 
-    function $(sel, root=document){ return root.querySelector(sel); }
-    function $all(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
-
-    function parseData(){
-      const raw = document.getElementById('dataset-json').textContent.trim();
-      try {
-        const data = JSON.parse(raw);
-        if (!Array.isArray(data)) return [];
-        return data;
-      } catch(e){
-        console.error('Failed to parse dataset JSON', e);
-        return [];
+    function computeCategoryCounts(ds){
+      const m=new Map();
+      for(const v of ds.variables){
+        for(const c of (v.categories||[])){
+          m.set(c,(m.get(c)||0)+1);
+        }
       }
+      return Array.from(m.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
     }
 
     function render(){
-      const app = document.getElementById('app');
-      app.innerHTML = '';
+      const app = $('#app');
+      app.innerHTML='';
 
-      state.datasets.forEach(ds => {
-        const card = document.createElement('section');
-        card.className = 'dataset-card';
-        card.dataset.datasetId = ds.id;
+      state.datasets.forEach(ds=>{
+        const section = document.createElement('section');
+        section.className='dataset-card';
+        section.dataset.datasetId = ds.id;
 
-        card.innerHTML = `
-          <div class="dataset-header">
-            <h2 class="dataset-title">${escapeHTML(ds.title || ds.id)}</h2>
-            ${ds.subtitle ? `<div class="dataset-subtitle">${escapeHTML(ds.subtitle)}</div>` : ''}
-            ${ds.info ? `<div class="dataset-info">${escapeHTML(ds.info)}</div>` : ''}
-          </div>
-          <div class="controls">
-            <input type="search" placeholder="Search in this dataset… (label, variable name, notes)" aria-label="Search variables" />
-            <div class="info">${ds.variables.length} variables</div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style="width: 2rem"><input type="checkbox" data-action="toggle-all"></th>
-                  <th>Label</th>
-                  <th class="hide-sm">Variable name</th>
-                  <th class="hide-sm">Source variable name</th>
-                  <th class="hide-sm">Type</th>
-                  <th class="hide-sm">Category</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        `;
+        const header = document.createElement('div');
+        header.className='dataset-header';
+        header.innerHTML=`
+          <h2 class="dataset-title">${escapeHTML(ds.title||ds.id)}</h2>
+          ${ds.subtitle?`<div class="dataset-subtitle">${escapeHTML(ds.subtitle)}</div>`:''}
+          ${ds.info?`<div class="dataset-info">${escapeHTML(ds.info)}</div>`:''}`;
+        section.appendChild(header);
 
-        const tbody = card.querySelector('tbody');
-        ds.variables.forEach(v => tbody.appendChild(renderRow(ds, v)));
+        const controls = document.createElement('div');
+        controls.className='controls';
+        controls.innerHTML=`
+          <input type="search" placeholder="Search… (label, variable, notes)" aria-label="Search variables">
+          <select data-role="filterCat" aria-label="Filter by category"><option value="">All categories</option></select>
+          <div class="info">${ds.variables.length} variables</div>`;
+        section.appendChild(controls);
 
-        // Hook up search
-        const search = card.querySelector('input[type="search"]');
-        search.addEventListener('input', () => applyFilter(card, ds, search.value));
+        const tableWrap = document.createElement('div');
+        tableWrap.className='table-wrap';
+        tableWrap.innerHTML=`
+          <table>
+            <thead><tr>
+              <th style="width:2rem"><input type="checkbox" data-action="toggle-all"></th>
+              <th>Label</th>
+              <th class="hide-sm">Variable name</th>
+              <th class="hide-sm">Source variable name</th>
+              <th class="hide-sm">Type</th>
+              <th class="hide-sm">Categories</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>`;
+        section.appendChild(tableWrap);
 
-        // Hook up toggle-all
-        const toggleAll = card.querySelector('[data-action="toggle-all"]');
-        toggleAll.addEventListener('change', (e) => {
-          const rows = $all('tbody tr', card).filter(r => r.style.display !== 'none');
-          rows.forEach(r => {
-            const cb = r.querySelector('input[type="checkbox"]');
-            cb.checked = e.target.checked;
+        const catCounts = computeCategoryCounts(ds);
+        const ddl = controls.querySelector('select[data-role="filterCat"]');
+        for(const [cat,_] of catCounts){
+          const opt=document.createElement('option');
+          opt.value=cat;
+          opt.textContent=cat;
+          ddl.appendChild(opt);
+        }
+
+        const tbody = section.querySelector('tbody');
+        ds.variables.forEach(v=> tbody.appendChild(renderRow(ds,v)));
+
+        const search = controls.querySelector('input[type="search"]');
+        search.addEventListener('input', ()=>applyFilter(section, ds));
+
+        ddl.addEventListener('change', ()=>applyFilter(section, ds));
+
+        section.querySelector('[data-action="toggle-all"]').addEventListener('change', (e)=>{
+          const rows = $all('tbody tr', section).filter(r=>r.style.display!=='none');
+          rows.forEach(r=>{
+            const cb=r.querySelector('input[type="checkbox"]');
+            cb.checked=e.target.checked;
             cb.dispatchEvent(new Event('change'));
           });
         });
 
-        app.appendChild(card);
+        app.appendChild(section);
       });
-
       updateCartUI();
     }
 
     function renderRow(ds, v){
-      const tr = document.createElement('tr');
-      const key = ds.id + '::' + v.name;
-      tr.dataset.key = key;
+      const tr=document.createElement('tr');
+      const key=ds.id+'::'+v.name;
+      tr.dataset.key=key;
 
-      tr.innerHTML = `
-        <td><input type="checkbox" aria-label="Select ${escapeHTML(v.label || v.name)}"></td>
+      tr.innerHTML=`
+        <td><input type="checkbox" aria-label="Select ${escapeHTML(v.label||v.name)}"></td>
         <td>
-          <div class="var-label">${escapeHTML(v.label || v.name)}</div>
-          ${v.notes ? `<details><summary>Notes</summary><div class="var-notes">${escapeHTML(v.notes)}</div></details>` : ''}
+          <div class="var-label">${escapeHTML(v.label||v.name)}</div>
+          ${v.notes?`<details><summary>Notes</summary><div class="var-notes">${escapeHTML(v.notes)}</div></details>`:''}
         </td>
         <td class="mono hide-sm">${escapeHTML(v.name)}</td>
-        <td class="mono hide-sm">${escapeHTML(v.source || '')}</td>
-        <td class="hide-sm">${escapeHTML(v.type || '')}</td>
-        <td class="hide-sm">${escapeHTML(v.category || '')}</td>
-      `;
+        <td class="mono hide-sm">${escapeHTML(v.source||'')}</td>
+        <td class="hide-sm">${escapeHTML(v.type||'')}</td>
+        <td class="hide-sm">
+          <div class="chips">
+            ${(v.categories||[]).map(c=>`<span class='chip'>${escapeHTML(c)}</span>`).join('')}
+          </div>
+        </td>`;
 
       const cb = tr.querySelector('input[type="checkbox"]');
       cb.checked = state.selected.has(key);
-      cb.addEventListener('change', () => {
-        if (cb.checked){ state.selected.set(key, toCSVRecord(ds, v)); }
-        else { state.selected.delete(key); }
+      cb.addEventListener('change', ()=>{
+        if(cb.checked) state.selected.set(key, toCSVRecord(ds,v));
+        else state.selected.delete(key);
         updateCartUI();
       });
+
       return tr;
     }
 
-    function applyFilter(card, ds, term){
-      const q = (term || '').toLowerCase();
-      const rows = $all('tbody tr', card);
-      rows.forEach(r => {
-        const key = r.dataset.key;
-        const v = ds._byKey[key];
-        const blob = (v._search || '').toLowerCase();
-        r.style.display = blob.includes(q) ? '' : 'none';
-      });
-      // When filtering, uncheck the header checkbox
-      const toggleAll = card.querySelector('[data-action="toggle-all"]');
-      toggleAll.checked = false;
-    }
+    function applyFilter(section, ds){
+      const q = section.querySelector('input[type="search"]').value.trim().toLowerCase();
+      const cat = section.querySelector('select[data-role="filterCat"]').value;
 
-    function toCSVRecord(ds, v){
-      return {
-        dataset_id: ds.id,
-        dataset_title: ds.title || ds.id,
-        variable_name: v.name,
-        label: v.label || '',
-        source_variable_name: v.source || '',
-        type: v.type || '',
-        category: v.category || '',
-        notes: v.notes || ''
-      };
+      const rows = $all('tbody tr', section);
+      rows.forEach(r=>{
+        const v = ds._byKey[r.dataset.key];
+        const blob = [v.label, v.name, v.notes].filter(Boolean).join(' ').toLowerCase();
+        const hit = !q || blob.includes(q);
+        const catOk = !cat || (v.categories||[]).includes(cat);
+        r.style.display = (hit && catOk) ? '' : 'none';
+      });
+
+      section.querySelector('[data-action="toggle-all"]').checked = false;
     }
 
     function updateCartUI(){
-      const countEl = document.getElementById('cart-count');
-      const dlBtn = document.getElementById('download-csv');
-      const clearBtn = document.getElementById('clear-selection');
-      const n = state.selected.size;
-      countEl.textContent = String(n);
-      dlBtn.disabled = n === 0;
-      clearBtn.disabled = n === 0;
+      const n=state.selected.size;
+      $('#cart-count').textContent=String(n);
+      $('#download-csv').disabled = n===0;
+      $('#clear-selection').disabled = n===0;
     }
 
     function downloadCSV(){
       const rows = Array.from(state.selected.values());
-      if (!rows.length) return;
-      const headers = [
-        'dataset_id','dataset_title','variable_name','label','source_variable_name','type','category','notes'
-      ];
-      const csv = [headers.join(',')].concat(
-        rows.map(r => headers.map(h => csvEscape(r[h] ?? '')).join(','))
+      if(!rows.length) return;
+
+      const headers=['dataset_id','dataset_title','variable_name','label','source_variable_name','type','category','notes'];
+      const csv=[headers.join(',')].concat(
+        rows.map(r=>headers.map(h=>csvEscape(r[h]??'')).join(','))
       ).join('\n');
-      const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'predict_variables.csv';
-      document.body.appendChild(a); a.click(); a.remove();
+
+      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;
+      a.download='predict_variables.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
       URL.revokeObjectURL(url);
     }
 
     function clearSelection(){
       state.selected.clear();
-      // Uncheck all checkboxes
-      document.querySelectorAll('tbody input[type="checkbox"]').forEach(cb => cb.checked = false);
+      document.querySelectorAll('tbody input[type="checkbox"]').forEach(cb=>cb.checked=false);
       updateCartUI();
     }
 
-    function csvEscape(value){
-      const s = String(value).replace(/\r?\n/g, ' ');
-      if (s.includes(',') || s.includes('"')){
-        return '"' + s.replace(/"/g, '""') + '"';
-      }
-      return s;
-    }
-
-    function escapeHTML(s){
-      return String(s)
-        .replaceAll('&','&amp;')
-        .replaceAll('<','&lt;')
-        .replaceAll('>','&gt;')
-        .replaceAll('"','&quot;')
-        .replaceAll("'","&#39;");
-    }
-
-    // Wire global buttons
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', ()=>{
       state.datasets = parseData();
-      // Precompute search blobs and lookup
-      state.datasets.forEach(ds => {
-        ds._byKey = {};
-        ds.variables.forEach(v => {
-          v._search = [v.label, v.name, v.notes].filter(Boolean).join(' ');
-          const key = ds.id + '::' + v.name;
-          ds._byKey[key] = v;
-        });
+      state.datasets.forEach(ds=>{
+        ds._byKey={};
+        ds.variables.forEach(v=>{ ds._byKey[ds.id+'::'+v.name]=v; });
       });
-
       render();
-      document.getElementById('download-csv').addEventListener('click', downloadCSV);
-      document.getElementById('clear-selection').addEventListener('click', clearSelection);
+      $('#download-csv').addEventListener('click', downloadCSV);
+      $('#clear-selection').addEventListener('click', clearSelection);
     });
+
   })();
   </script>
 
@@ -291,5 +270,6 @@
     <p>Generated from YAML sources. Input files and hash:</p>
     <pre style="white-space: pre-wrap; word-break: break-word;">{{ provenance | e }}</pre>
   </footer>
+
 </body>
 </html>
