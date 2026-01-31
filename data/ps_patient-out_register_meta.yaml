@@ -1,0 +1,82 @@
+filename: "ps_patient-out_register.tsv"
+puddle_id: "in_0021"
+source_code: "~/avan-prod/data/in_0021/code/20_tidy/50_tidy_patient-out.Rmd"
+source_data: "~/avan-prod/data/in_0021/02_silver/ps_outpatient_register.tsv"
+n_individuals: 42861
+n_observations: 492161
+n_columns: 43
+title: "National Out Patient Register"
+subtitle: "Data extract from the National Board of Health and Welfare (Socialstyrelsen)"
+version: 1.0
+info:
+- "This dataset is an extract from the National Out Patient Register (Patientregistret
+  Öppenvård), covering the period from 2001-01-01 to 2022-03-31. It includes all individuals
+  in the Predict cohort with a record in the register related to the requested diagnoses
+  within this time span."
+- "The National Board of Health and Welfare (Socialstyrelsen) provides a variable
+  list online. Variable names correspond to the `colname_silver` value in Avan's internal
+  codebook: <https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/ dokument-webb/ovrigt/register-variabelforteckning-patientregistret.xlsx>"
+- "Many records contain `BLANKED` external cause code values. This represents code
+  values actively reducted by the National Board of Health and Welfare, because they
+  are not included in the data application."
+- "ICD code descriptions and hierarchical groupings included in this dataset are based
+  on in-house translations and mappings. While we rely on official sources — from
+  the National Board of Health and Welfare — users are encouraged to verify all annotations
+  independently. For reference: - ICD-10-SE: <https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/
+  dokument-webb/klassifikationer-och-koder/icd-10-se.tsv>"
+info_internal:
+- "PREDICT received a codebook (Excel) specific for this data extraction: 01_bronze/03_documentation/Variabellista_13819_2024.xlsx"
+- "Notes from data transformation: **Dropping duplicated rows**: n = 1,855 **Dropping
+  unused columns**: `-c(DIA18:DIA30), -(EKOD5:EKOD7)`, as no records contained more
+  than 17 diagnoses or 4 external causes. **Untouched**: `diagnosis` (renamed from
+  `HDIA`), `diagnosis_01`-`diagnosis_17` (renamed from `DIA1`-`DIA17`), `external_cause_1`-`external_cause_4`
+  (renamed from `EKOD1`-`EKOD4`), `procedures` (renamed from `OP`), `report_complete`
+  (renamed from `slutrapporterad`). **ICD-version extrapolation**: Inferred ICD-version
+  from `diagnosis` using: 1. Year (<1997 = ICD-9), 2. Strict pattern matching, 3.
+  Relaxed pattern matching, 4. Special case: `E872` post-1998 forced to ICD-10. **Validating
+  `diagnosis`**: Results presented in `icd_validation`"
+- "Notes from exploring all ICD-code variables and values: ICD codes were evaluated
+  using format checks and official reference lists. Codes were flagged as: `ERROR_FORMAT`
+  (invalid format) or `ERROR_NOT_FOUND` (valid format but not found in the reference
+  list). `ERROR_NOT_FOUND` may indicate either (i) genuinely incorrect codes or (ii)
+  gaps in the reference lists. The ICD-10 list includes only currently valid codes
+  - discontinued codes are excluded. The ICD-9-SE list was extracted from PDF and
+  Excel files, which may have introduced conversion errors. E-series and V-series
+  codes were deliberately excluded, except for 17 V-codes manually added due to frequent
+  occurrence in the `diagnosis` (formerly `HDIA`) column of this National Out Patient
+  Register. **Why do we annotate codes at a higher hierarchy when the full-length
+  code is invalid?** Sometimes, a full-length code appears invalid, but its shorter
+  (hierarchical parent) form is valid. After internal discussion, we decided to include
+  these shorter codes in further annotation. We reason that these codes likely have
+  the same rate of undetectable errors as any others, and excluding them would risk
+  unnecessary data loss."
+- "Notes from exploring all ICD-code variables and values: **`HDIA`**: - n = 78 unique
+  full-length codes failed lookup, affecting 6,056 records (2001-2018). Of these,
+  66 codes matched at 3chr level, salvaging 4,386 records. Ultimately, 12 codes failed
+  lookup at both levels, affecting 1,670 records. **`diagnosis_01`–`diagnosis_17`**:
+  - n = 103 unique full-length codes failed lookup, affecting 8,203 records (2001-2020).
+  Of these, 84 codes matched at 3chr level, salvaging 5,937 records. Ultimately, 19
+  codes failed lookup at both levels, affecting 2,266 records. **`external_cause_1`–`external_cause_4`**:
+  - All codes match the lookup asset."
+idcols_individuals: "avanid"
+idcols_observations:
+- "avanid"
+- "avan_ridx"
+observation_descriptions: "Each observation represents an outpatient visit, associated
+  with one main diagnosis, up to 17 additional diagnoses, up to 15 procedures, and
+  up to 4 external causes."
+tags:
+- "patient register"
+- "national board of health and welfare"
+- "socialstyrelsen"
+categories: "register"
+projects: "predict"
+pis: "Beatrice Melin"
+source: "National Board of Health and Welfare"
+origin: ~
+notes:
+- "The data extraction from The National Board of Health and Welfare (Socialstyrelsen)
+  is based on the application registration number (diarenummer): 13819/2024"
+- "Case manager at National Board of Health and Welfare was Anna Pilblad"
+ingest_date: "2025-03-12"
+confidential: yes

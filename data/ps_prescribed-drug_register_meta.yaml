@@ -1,0 +1,88 @@
+filename: "ps_prescribed-drug_register.tsv"
+puddle_id: "in_0021"
+source_code: "~/avan-prod/data/in_0021/code/20_tidy/40_tidy_prescribed-drug.Rmd"
+source_data: "~/avan-prod/data/in_0021/02_silver/ps_medication_register.tsv"
+n_individuals: 47772
+n_observations: 11977944
+n_columns: 20
+title: "National Prescribed Drug Register"
+subtitle: "Data extract from the National Board of Health and Welfare (Socialstyrelsen)"
+version: ~
+info:
+- "This dataset is an extract from the National Prescribed Drug Register (Läkemedelsregistret),
+  covering the period from 2005-01-01 to 2022-03-31. The extraction was performed
+  2025-02-24 and includes all individuals in the Predict cohort with a record in the
+  register."
+- "The National Board of Health and Welfare (Socialstyrelsen) provides a variable
+  list online. Variable names correspond to the `colname_silver` value in Avan's internal
+  codebook: <https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/ dokument-webb/statistik/register-variabelforteckning-lakemedelsregistret.xlsx>"
+- "For information about the structure and principles of the ATC classification, please
+  refer to: <https://atcddd.fhi.no/atc/structure_and_principles>"
+- "**Posts with negative `dispensed_package_count`:** These posts represent corrections
+  to previously recorded dispensing events. They are not standalone dispensing events,
+  but are intended to cancel out erroneous entries. To support downstream filtering
+  and interpretation, each negative post is annotated with a Candidate Corresponding
+  Erroneous Post (CCEP), identified using a custom matching algorithm. The algorithm
+  searches for a matching post from the same individual (`avanid`) with the same drug
+  (`atc_code`) and the exact opposite quantity. The `ccep` column contains the `avan_ridx`
+  of the matched post. The `ccep_datediff` column records the number of days between
+  the negative post and its CCEP. This enables data users to apply their own judgment
+  regarding the plausibility of a correction being made X days after the original
+  event. For example, users may choose to exclude matches with long time gaps. The
+  `ccep_filter` column marks all identified CCEPs with `drop`, regardless of time
+  difference, to enable straightforward exclusion of putative erroneous records."
+- "**ATC code annotations:** All records are annotated with ATC codes at the 3-character
+  level, in addition to the full-length code. Titles corresponding to each ATC code
+  level are added to support interpretability. ATC annotations are based on the complete
+  ATC index from the WHO Collaborating Centre for Drug Statistics Methodology (accessed
+  2025-06-12): <https://atcddd.fhi.no/>. Some ATC codes in the dataset represent consumables
+  and medical supplies, which are not part of the official WHO ATC classification.
+  The official list of consumables is published by the Swedish Dental and Pharmaceutical
+  Benefits Agency (TLV) and is available at: <https://www.tlv.se/download/18.4d6cf1fa167c5ffddff967/1545218568789/varugrupperingskoder.pdf>
+  A total of 150 unique ATC codes in the dataset are not found in the official ATC
+  reference, affecting 227,321 records. These unmatched codes fall into three categories:
+  1. **Codes inside the ATC code range (A-V):** There is 1 code (`D11AX00`), affecting
+  2 records from the same individual. It is present in the ATC reference at both the
+  3-character and 5-character levels. 2. **Codes that begin with Y:** Some ATC values
+  begin with Y, representing either consumables or 'Foods for particular nutritional
+  purposes (`Y75...`)'. There are 126 unique codes beginning with Y, affecting 224,468
+  posts. Of these, 89 codes are listed in TLV's list of consumables (affecting 204,451
+  posts), 24 codes begin with `Y75...` (affecting 11,133 posts), and 13 codes that
+  can not be explained by either (affecting 8,884 posts). 3. **Codes that start with
+  X or Z:** There are n = 23 unique codes that start with X or Z, affecting 2,851
+  posts. No explanation has been identified for these codes."
+info_internal:
+- "PREDICT received a codebook (Excel) specific for this data extraction: 01_bronze/03_documentation/Variabellista_13819_2024.xlsx"
+- "Notes from data transformation: - **Dropped rows** where `ATC == '-'`: n = 1,739.
+  - **Dropped cols**: none. - **Untouched cols**: `atc_code`, `dispensing_date`, `dispensed_package_count`,
+  `dispensing_year`, `package_ddd`."
+- "CCEP matching prioritization follows a strict rule set: 1. If multiple candidate
+  CCEPs exist: (i) Prefer matches on the same date as the negative post. (ii) Among
+  same-date matches, select the one closest above in original row order (`avan_ridx`);
+  if none, select the closest below. 2. If no same-date match exists: (i) Select the
+  candidate with the closest earlier date. (ii) Prioritize by original row order (`avan_ridx`).
+  3. Any post may only be matched as a CCEP once. If no match is found, the `ccep`
+  value is set to `'none'` (affects n = 4 posts)."
+- "Some patterns in the data suggest that, in rare cases, two negative `dispensed_package_count`
+  posts may jointly correspond to a single erroneous dispensing event. The current
+  CCEP annotation logic does not account for such multi-post corrections."
+idcols_individuals: "avanid"
+idcols_observations:
+- "avanid"
+- "avan_ridx"
+observation_descriptions: "Each observation represetnts a drug dispensing event"
+tags:
+- "drugs"
+- "national board of health and welfare"
+- "socialstyrelsen"
+categories: "register"
+projects: "predict"
+pis: "Beatrice Melin"
+source: "National Board of Health and Welfare"
+origin: ~
+notes:
+- "The data extraction from The National Board of Health and Welfare (Socialstyrelsen)
+  is based on the application registration number (diarenummer): 13819/2024"
+- "Case manager at National Board of Health and Welfare was Anna Pilblad"
+ingest_date: "2025-03-12"
+confidential: yes

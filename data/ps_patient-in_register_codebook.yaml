@@ -1,0 +1,1096 @@
+avanid:
+  colname_silver: "avanid"
+  coltypes: "character"
+  categories: "avan_internal"
+  tags: "identifier"
+  labels: "NA"
+  sources_avan: "internal"
+  origins: "internal"
+  notes: "NA"
+  notes_swe: "NA"
+avan_ridx:
+  colname_silver: "avan_ridx"
+  coltypes: "character"
+  categories:
+  - "avan_internal"
+  - "identifier"
+  tags: "identifier"
+  labels: "NA"
+  sources_avan: "internal"
+  origins: "internal"
+  notes: "Unique observation identifier. A row index that matches the row numbers
+    in the original file."
+  notes_swe: "NA"
+birthdate:
+  colname_silver: "birthdate"
+  coltypes: "date"
+  categories: "demography"
+  tags: "birthdate"
+  labels: "Date of birth"
+  sources_avan: "derived"
+  origins: "predict"
+  notes: "Extracted from pin"
+  notes_swe: "NA"
+sex:
+  colname_silver: "sex"
+  tidyaction: "harmonized"
+  recodings:
+  - "F ~ F"
+  - "M ~ M"
+  coltypes: "character"
+  categories: "demography"
+  tags: "sex"
+  labels: "Sex"
+  sources_avan: "derived"
+  origins: "predict"
+  notes: "Derived from pin"
+  notes_swe: "NA"
+  data_values:
+  - "F ~ Female"
+  - "M ~ Male"
+admission_date:
+  colname_silver: "INDATUM"
+  coltypes: "date"
+  categories: "care_episode"
+  tags: "NA"
+  labels: "Date of admission"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Year of introduction: 1964"
+  notes_swe: "Det datum då patienten skrivs in"
+discharge_date:
+  colname_silver: "UTDATUM"
+  coltypes: "date"
+  categories: "care_episode"
+  tags: "NA"
+  labels: "Date of discharge"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Year of introduction: 1964"
+  notes_swe: "Det datum då patienten skrivs ut"
+discharge_year:
+  colname_silver: "AR"
+  coltypes: "double"
+  categories: "care_episode"
+  tags: "NA"
+  labels: "Year of discharge"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Year of introduction: 1964"
+  notes_swe: "Utskrivningsår"
+admission_age:
+  colname_silver: "age_admission"
+  coltypes: "double"
+  categories: "demography"
+  tags: "NA"
+  labels: "Age at admission"
+  sources_avan: "derived"
+  origins: "derived"
+  notes: "Derived from `admission_date` and `birthdate`."
+  notes_swe: "NA"
+discharge_age:
+  colname_silver: "age_discharge"
+  coltypes: "double"
+  categories: "demography"
+  tags: "NA"
+  labels: "Age at discharge"
+  sources_avan: "derived"
+  origins: "derived"
+  notes: "Derived from `discharge_date` and `birthdate`."
+  notes_swe: "NA"
+icd_version:
+  colname_silver: "HDIA_icd_v"
+  recodings:
+  - "ICD-10 ~ ICD-10-SE"
+  - "ICD-9 ~ ICD-9-SE"
+  coltypes: "character"
+  categories: "medical_code"
+  tags: "icd"
+  labels: "ICD-code version"
+  sources_avan: "derived"
+  origins: "derived"
+  notes: "Inferred from `diagnosis` using: 1. Year (<1997 = ICD-9), 2. Strict pattern
+    matching, 3. Relaxed pattern matching, 4. Special case: `E872` post-1998 forced
+    to ICD-10."
+  notes_swe: "NA"
+icd_validation:
+  colname_silver: "check_icd_info"
+  coltypes: "character"
+  categories: "medical_code"
+  tags: "icd"
+  labels: "ICD-code validation"
+  sources_avan: "derived"
+  origins: "derived"
+  notes: "Best-effort validation of `diagnosis` ICD-code values using custom in-house
+    methods."
+  notes_swe: "NA"
+  data_values:
+  - "BLANKED ~ Redacted"
+  - "ERROR_FORMAT ~ Invalid ICD format"
+  - "ERROR_NOT_FOUND ~ Valid format, but not in reference list"
+  - "FOUND ~ Valid format, matches reference list"
+diagnosis:
+  colname_silver: "HDIA"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Main diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD code. Includes discontinued codes, format errors, and values not found
+    in official ICD-9/10-SE lookup assets. Year of introduction: 1964"
+  notes_swe: "Angiven huvuddiagnos"
+diagnosis_text:
+  colname_silver: "HDIA_text"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Main diagnosis (ICD)"
+  sources_avan: "derived"
+  origins: "derived"
+  notes: "Text description of `diagnosis`, based on in-house translation using resources
+    from the National Board of Health and Welfare. Untranslatable codes are represented
+    as NA."
+  notes_swe: "NA"
+diagnosis_3chr_code:
+  colname_silver: "HDIA_3chr_code"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Main diagnosis (ICD, 3-chr)"
+  sources_avan: "derived"
+  origins: "derived"
+  notes: "Three-character ICD code, derived by truncating `diagnosis`."
+  notes_swe: "NA"
+diagnosis_3chr_text:
+  colname_silver: "HDIA_3chr_text"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Main diagnosis (ICD, 3-chr)"
+  sources_avan: "derived"
+  origins: "derived"
+  notes: "Text description of `diagnosis_3chr_code`, based on in-house translation
+    using resources from the National Board of Health and Welfare. Untranslatable
+    codes are represented as NA."
+  notes_swe: "NA"
+diagnosis_int_code:
+  colname_silver: "HDIA_int_code"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Main diagnosis (ICD, interval)"
+  sources_avan: "derived"
+  origins: "derived"
+  notes: "Top-level ICD interval code, derived from `diagnosis` using in-house mapping,
+    based on resources from the National Board of Health and Welfare"
+  notes_swe: "NA"
+diagnosis_int_text:
+  colname_silver: "HDIA_int_text"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Main diagnosis (ICD, interval)"
+  sources_avan: "derived"
+  origins: "derived"
+  notes: "Text description of `diagnosis_int_code`, based on in-house translation
+    using resources from the National Board of Health and Welfare. Untranslatable
+    codes are represented as NA."
+  notes_swe: "NA"
+diagnosis_01:
+  colname_silver: "DIA1"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_02:
+  colname_silver: "DIA2"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_03:
+  colname_silver: "DIA3"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_04:
+  colname_silver: "DIA4"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_05:
+  colname_silver: "DIA5"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_06:
+  colname_silver: "DIA6"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_07:
+  colname_silver: "DIA7"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_08:
+  colname_silver: "DIA8"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_09:
+  colname_silver: "DIA9"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_10:
+  colname_silver: "DIA10"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_11:
+  colname_silver: "DIA11"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_12:
+  colname_silver: "DIA12"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_13:
+  colname_silver: "DIA13"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_14:
+  colname_silver: "DIA14"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_15:
+  colname_silver: "DIA15"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_16:
+  colname_silver: "DIA16"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_17:
+  colname_silver: "DIA17"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_18:
+  colname_silver: "DIA18"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_19:
+  colname_silver: "DIA19"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_20:
+  colname_silver: "DIA20"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_21:
+  colname_silver: "DIA21"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_22:
+  colname_silver: "DIA22"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_23:
+  colname_silver: "DIA23"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_24:
+  colname_silver: "DIA24"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_25:
+  colname_silver: "DIA25"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_26:
+  colname_silver: "DIA26"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_27:
+  colname_silver: "DIA27"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_28:
+  colname_silver: "DIA28"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_29:
+  colname_silver: "DIA29"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+diagnosis_30:
+  colname_silver: "DIA30"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "Diagnosis (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code. The order of `diagnosis_nn` variables is not systematically meaningful
+    across the dataset. Year of introduction: 1964"
+  notes_swe: "Diagnoser enligt ICD. Max 30 diagnoser."
+external_cause_1:
+  colname_silver: "EKOD1"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "External cause (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code, Year of introduction: 1964"
+  notes_swe: "Ytttre orsakskod 1"
+external_cause_2:
+  colname_silver: "EKOD2"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "External cause (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code, Year of introduction: 1997"
+  notes_swe: "Ytttre orsakskod 2"
+external_cause_3:
+  colname_silver: "EKOD3"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "External cause (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code, Year of introduction: 2009"
+  notes_swe: "Ytttre orsakskod 3"
+external_cause_4:
+  colname_silver: "EKOD4"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "External cause (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code, Year of introduction: 2009"
+  notes_swe: "Ytttre orsakskod 4"
+external_cause_5:
+  colname_silver: "EKOD5"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "diagnosis"
+  tags: "icd"
+  labels: "External cause (ICD)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "ICD-code, Year of introduction: 2009"
+  notes_swe: "Ytttre orsakskod 5"
+procedures:
+  colname_silver: "OP"
+  coltypes: "character"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Procedure codes (KVA, space delimited list)"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Multiple procedure codes, space delimited, using KOP-codes (1964-1996) or
+    KVA-code (post 1996). Includes errors, such as `-1` and `0000`. The order of procedure
+    codes corresponds to the order of dates in `procedure_date_1`–`procedure_date_30`,
+    assuming the codes were reported correctly. However, some inconsistencies may
+    occur. A missing procedure date does not necessarily indicate a mismatch — dates
+    may simply be absent. Year of introduction: 1964"
+  notes_swe: "Åtgärdskoder max 30 åtgärder. De medicinska åtgärdskoderna rapporteras
+    in i varierande utsträckning. Generellt en viss underrapportering av dessa."
+procedures_count:
+  colname_silver: "OP_count"
+  coltypes: "double"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Number of procedures recorded"
+  sources_avan: "derived"
+  origins: "derived"
+  notes: "Number of reported procedures; may exceed 30. Derived from `procedures`.
+    Replaces the variable `OP_ANT` provided by the National Board of Health and Wellfare."
+  notes_swe: "NA"
+procedure_date_01:
+  colname_silver: "OPD1"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 1"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 1. Year of introduction: 1997."
+  notes_swe: "Datum då åtgärd 1 utfördes"
+procedure_date_02:
+  colname_silver: "OPD2"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 2"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 2. Year of introduction: 1997."
+  notes_swe: "Datum då åtgärd 2 utfördes"
+procedure_date_03:
+  colname_silver: "OPD3"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 3"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 3. Year of introduction: 1997."
+  notes_swe: "Datum då åtgärd 3 utfördes"
+procedure_date_04:
+  colname_silver: "OPD4"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 4"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 4. Year of introduction: 1997."
+  notes_swe: "Datum då åtgärd 4 utfördes"
+procedure_date_05:
+  colname_silver: "OPD5"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 5"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 5. Year of introduction: 1997."
+  notes_swe: "Datum då åtgärd 5 utfördes"
+procedure_date_06:
+  colname_silver: "OPD6"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 6"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 6. Year of introduction: 1997."
+  notes_swe: "Datum då åtgärd 6 utfördes"
+procedure_date_07:
+  colname_silver: "OPD7"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 7"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 7. Year of introduction: 1997."
+  notes_swe: "Datum då åtgärd 7 utfördes"
+procedure_date_08:
+  colname_silver: "OPD8"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 8"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 8. Year of introduction: 1997."
+  notes_swe: "Datum då åtgärd 8 utfördes"
+procedure_date_09:
+  colname_silver: "OPD9"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 9"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 9. Year of introduction: 1997."
+  notes_swe: "Datum då åtgärd 9 utfördes"
+procedure_date_10:
+  colname_silver: "OPD10"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 10"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 10. Year of introduction: 1997."
+  notes_swe: "Datum då åtgärd 10 utfördes"
+procedure_date_11:
+  colname_silver: "OPD11"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 11"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 11. Year of introduction: 1997."
+  notes_swe: "Datum då åtgärd 11 utfördes"
+procedure_date_12:
+  colname_silver: "OPD12"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 12"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 12. Year of introduction: 1997."
+  notes_swe: "Datum då åtgärd 12 utfördes"
+procedure_date_13:
+  colname_silver: "OPD13"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 13"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 13. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 13 utfördes"
+procedure_date_14:
+  colname_silver: "OPD14"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 14"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 14. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 14 utfördes"
+procedure_date_15:
+  colname_silver: "OPD15"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 15"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 15. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 15 utfördes"
+procedure_date_16:
+  colname_silver: "OPD16"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 16"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 16. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 16 utfördes"
+procedure_date_17:
+  colname_silver: "OPD17"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 17"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 17. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 17 utfördes"
+procedure_date_18:
+  colname_silver: "OPD18"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 18"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 18. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 18 utfördes"
+procedure_date_19:
+  colname_silver: "OPD19"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 19"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 19. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 19 utfördes"
+procedure_date_20:
+  colname_silver: "OPD20"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 20"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 20. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 20 utfördes"
+procedure_date_21:
+  colname_silver: "OPD21"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 21"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 21. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 21 utfördes"
+procedure_date_22:
+  colname_silver: "OPD22"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 22"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 22. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 22 utfördes"
+procedure_date_23:
+  colname_silver: "OPD23"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 23"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 23. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 23 utfördes"
+procedure_date_24:
+  colname_silver: "OPD24"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 24"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 24. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 24 utfördes"
+procedure_date_25:
+  colname_silver: "OPD25"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 25"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 25. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 25 utfördes"
+procedure_date_26:
+  colname_silver: "OPD26"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 26"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 26. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 26 utfördes"
+procedure_date_27:
+  colname_silver: "OPD27"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 27"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 27. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 27 utfördes"
+procedure_date_28:
+  colname_silver: "OPD28"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 28"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 28. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 28 utfördes"
+procedure_date_29:
+  colname_silver: "OPD29"
+  coltypes: "date"
+  categories:
+  - "medical_code"
+  - "procedure"
+  tags: "kva"
+  labels: "Date of procedure 29"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Date of procedure 29. Year of introduction: 2009"
+  notes_swe: "Datum då åtgärd 29 utfördes"
+report_complete:
+  colname_silver: "slutrapporterad"
+  recodings:
+  - "1 ~ complete"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories: "care_episode"
+  tags: "NA"
+  labels: "Is reporting complete"
+  sources_avan: "national board of health and welfare"
+  origins: "national board of health and welfare"
+  notes: "Indicates whether the care episode has been finalized by the healthcare
+    provider. The value `final` means reporting is complete, including any corrections
+    made within the allowed three-month window. Year of introduction: 2021."
+  notes_swe: "Markerar om en vårdkontakt rapporterats in för sista gången i enlighet
+    med föreskriften."
+  data_values:
+  - "complete ~ Reporting is complete"
+  - "NA ~ missing"
+eventdate:
+  tidyaction: "harmonized"
+  coltypes: "date"
+  categories: "avan_internal"
+  tags: "internal"
+  labels: "Date of event"
+  sources_avan: "internal"
+  origins: "internal"
+  notes: "Copy of column `admission_date`."
+  notes_swe: "NA"
+eventtype:
+  coltypes: "character"
+  categories: "avan_internal"
+  tags: "internal"
+  labels: "Type of event"
+  sources_avan: "internal"
+  origins: "internal"
+  notes: "NA"
+  notes_swe: "NA"
+projecttags:
+  coltypes: "character"
+  categories: "avan_internal"
+  tags: "internal"
+  labels: "Projects in which an individual is included"
+  sources_avan: "internal"
+  origins: "internal"
+  notes: "NA"
+  notes_swe: "NA"
+who_can_use:
+  coltypes: "character"
+  categories: "avan_internal"
+  tags: "internal"
+  labels: "Who can use data"
+  sources_avan: "internal"
+  origins: "internal"
+  notes: "NA"
+  notes_swe: "NA"

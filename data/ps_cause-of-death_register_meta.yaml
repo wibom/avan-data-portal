@@ -1,0 +1,78 @@
+filename: "ps_cause-of-death_register.tsv"
+puddle_id: "in_0021"
+source_code: "~/avan-prod/data/in_0021/code/20_tidy/30_tidy_cause-of-death.Rmd"
+source_data: "~/avan-prod/data/in_0021/02_silver/ps_causeofdeath_register.tsv"
+n_individuals: 14704
+n_observations: 14704
+n_columns: 35
+title: "National Cause of Death Register"
+subtitle: "Data extract from the National Board of Health and Welfare (Socialstyrelsen)"
+version: 1.0
+info:
+- "This dataset is an extract from the National Cause of Death Register, covering
+  the period from 1958-01-01 to 2022-03-31. It includes all individuals in the Predict
+  cohort with a record in the register within this time span."
+- "Date of extraction: 2025-02-24"
+- "Official site: https://www.socialstyrelsen.se/statistik-och-data/register/dodsorsaksregistret/"
+- "The National Board of Health and Welfare (Socialstyrelsen) provides a variable
+  list online. Variable names correspond to the `colname_silver` value in Avan's internal
+  codebook: https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/dokument-webb/statistik/register-dodsorsaksregistret-variabelforteckning.xls"
+- "ICD code descriptions and hierarchical groupings included in this dataset are based
+  on in-house translations and mappings. While we rely on official sources — including
+  the National Board of Health and Welfare (ICD-10-SE, downloaded 2025-03-20) and
+  the CDC ICD-9-CM archive (downloaded 2025-04-01) — users are encouraged to verify
+  all annotations independently. In particular, the CDC ICD-9-CM data was provided
+  in RTF format and parsed using custom code, which may introduce errors despite our
+  best efforts. Responsibility for analytical decisions based on these annotations
+  ultimately rests with the user. For reference: - ICD-10-SE: https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/dokument-webb/klassifikationer-och-koder/icd-10-se.tsv
+  - CDC archive: https://archive.cdc.gov/www_cdc_gov/nchs/icd/icd9cm.htm - CDC archive
+  resouce: https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD9-CM/2011/Appndx12.zip,
+  ('DC_3D12.RTF' in zip-archive)"
+- "The dataset contains up to 17 contributing causes of death in the variables `cod_contributing_01`
+  – `cod_contributing_17` (renamed from `MORSAK1` – `MORSAK17`). These hold all diagnoses
+  listed on the death-certificate in addition to the underlying cause. Precise *priority*
+  or *placement* on the certificate cannot be reconstructed from the current extract,
+  because the RO-variables (`RO1` – `RO48`) — which encode the certificate row and
+  ordinal position (e.g., `RO1 = 101` --> terminal cause in `cod_contributing_01`;
+  `RO2 = 602` --> second listed contributing cause in `cod_contributing_02`) — were
+  not part of our order. According to guidance from the National Board of Health and
+  Welfare, the first digit of an RO code indicates the line on the certificate (rows
+  1–4 form the causal chain, row 6 lists other contributing causes). A sample certificate
+  illustrating this layout is available at: <https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/artikelkatalog/foreskrifter-och-allmanna-rad/bilaga6-dodsorsaksintyg.pdf>.
+  The Predict project is currently submitting an additional application to obtain
+  the RO-variables; future releases will therefore allow full reconstruction of the
+  certificate´s ordering of contributing causes."
+info_internal:
+- "PREDICT received a codebook (Excel) specific for this data extraction: 01_bronze/03_documentation/Variabellista_13819_2024.xlsx"
+- "Transforming this dataset involved: **Dropping unused columns**: Variables `MORSAK18`
+  to `MORSAK48` were removed, as no records contained more than 17 multiple causes
+  of death. **Fixing invalid dates**: Death dates (`DODSDAT`) with missing day or
+  month components (coded as `'00'`) were replaced with `'01'` to allow date parsing
+  and age calculation. **Cleaning ICD codes**: A leading hyphen (`-`), historically
+  used for additional diagnoses in multiple cause-of-death fields, was removed from
+  `ULORSAK` and all `MORSAK` variables. This change is documented and justified via
+  correspondence with the National Board of Health and Welfare."
+- "A small set of full-length `cod_underlying_code` ICD-10 codes were identified as
+  invalid based on the ICD-10-SE lookup (22 unique codes, affecting 126 records).
+  All were valid at the three-character level. Original code values are kept in the
+  processed data. Only valid codes can be further annotated. Similarly, two `cod_underlying_code`
+  ICD-9 codes (affecting 3 records) were flagged as invalid (`'888'` and `'_AVI_'`).
+  These values are replaced by `NA` in the processed data."
+idcols_individuals: "avanid"
+idcols_observations: "avanid"
+observation_descriptions: "Each observation represents a registered death."
+tags:
+- "cause of death"
+- "national board of health and welfare"
+- "socialstyrelsen"
+categories: "register"
+projects: "predict"
+pis: "Beatrice Melin"
+source: "National Board of Health and Welfare"
+origin: ~
+notes:
+- "The data extraction from The National Board of Health and Welfare (Socialstyrelsen)
+  is based on the application registration number (diarenummer): 13819/2024"
+- "Case manager at National Board of Health and Welfare was Anna Pilblad"
+ingest_date: "2025-03-12"
+confidential: yes

@@ -1,0 +1,104 @@
+filename: "ps_patient-in_register.tsv"
+puddle_id: "in_0021"
+source_code: "~/avan-prod/data/in_0021/code/20_tidy/60_tidy_patient-in.Rmd"
+source_data: "~/avan-prod/data/in_0021/02_silver/ps_inpatient_register.tsv"
+n_individuals: 36011
+n_observations: 182587
+n_columns: 88
+title: "National In Patient Register"
+subtitle: "Data extract from the National Board of Health and Welfare (Socialstyrelsen)"
+version: 1.0
+info:
+- "This dataset is an extract from the National In Patient Register (Patientregistret
+  Slutenvård), covering the period from 1987-01-01 to 2022-03-31. It includes all
+  individuals in the Predict cohort with a record in the register related to the requested
+  diagnoses within this time span."
+- "The National Board of Health and Welfare (Socialstyrelsen) provides a variable
+  list online. Variable names correspond to the `colname_silver` value in Avan's internal
+  codebook: <https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/ dokument-webb/ovrigt/register-variabelforteckning-patientregistret.xlsx>"
+- "Many records contain `BLANKED` code values. This represents code values actively
+  reducted by the National Board of Health and Welfare, because they are not included
+  in the data application."
+- "ICD code descriptions and hierarchical groupings included in this dataset are based
+  on in-house translations and mappings. While we rely on official sources — from
+  the National Board of Health and Welfare — users are encouraged to verify all annotations
+  independently. In particular, the ICD-9-SE data was provided in PDF and XLS format
+  and parsed using custom code, which may introduce errors despite our best efforts.
+  Responsibility for analytical decisions based on these annotations ultimately rests
+  with the user. For reference: - ICD-10-SE: <https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/
+  dokument-webb/klassifikationer-och-koder/icd-10-se.tsv> - ICD-9-SE: <https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/
+  dokument-webb/klassifikationer-och-koder/icd9-klassifikation-av-sjukdomar-1987.pdf>
+  <https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/ dokument-webb/klassifikationer-och-koder/icd-9-klassifikation-av-sjukdomar-1987-ks87.xls>"
+info_internal:
+- "PREDICT received a codebook (Excel) specific for this data extraction: 01_bronze/03_documentation/Variabellista_13819_2024.xlsx"
+- "Notes from data transformation: **Dropping duplicated rows**: n = 79. **Dropping
+  unused columns**: `OPD30`, as no records contained more than 29 recorded procedures.
+  **Untouched**: `diagnosis` (renamed from `HDIA`), `diagnosis_01`-`diagnosis_30`
+  (renamed from `DIA1`-`DIA30`), `external_cause_1`-`external_cause_5` (renamed from
+  `EKOD1`-`EKOD5`), `procedures` (renamed from `OP`), `procedure_date_01`-`procedure_date_29`
+  (renamed from `OPD1`-`OPD29`), `report_complete` (renamed from `slutrapporterad`).
+  **ICD-version extrapolation**: Inferred ICD-version from `diagnosis` using: 1. Year
+  (<1997 = ICD-9), 2. Strict pattern matching, 3. Relaxed pattern matching, 4. Special
+  case: `E872` post-1998 forced to ICD-10. **Validating `diagnosis`**: Results presented
+  in `icd_validation`"
+- "Notes from exploring all ICD-code variables and values: ICD codes were evaluated
+  using format checks and official reference lists. Codes were flagged as: `ERROR_FORMAT`
+  (invalid format) or `ERROR_NOT_FOUND` (valid format but not found in the reference
+  list). `ERROR_NOT_FOUND` may indicate either (i) genuinely incorrect codes or (ii)
+  gaps in the reference lists. The ICD-10 list includes only currently valid codes
+  - discontinued codes are excluded. The ICD-9-SE list was extracted from PDF and
+  Excel files, which may have introduced conversion errors. E-series and V-series
+  codes were deliberately excluded, except for 17 V-codes manually added due to frequent
+  occurrence in the `diagnosis` (formerly `HDIA`) column of this National In Patient
+  Register. **Why do we annotate codes at a higher hierarchy when the full-length
+  code is invalid?** Sometimes, a full-length code appears invalid, but its shorter
+  (hierarchical parent) form is valid. After internal discussion, we decided to include
+  these shorter codes in further annotation. We reason that these codes likely have
+  the same rate of undetectable errors as any others, and excluding them would risk
+  unnecessary data loss."
+- "Notes from exploring all ICD-code variables and values: **`HDIA`**: - n = 145 unique
+  full-length codes failed lookup, affecting 3,400 records (1987-2016). Of these,
+  131 codes matched at 3chr level, salvaging 3,191 records. Ultimately, 14 codes failed
+  lookup at both levels, affecting 209 records. - n = 80 unique code values with format
+  errors (ERROR_FORMAT), across n = 393 records (1987-1997). At 3-character level;
+  all n = 80 values match the lookup asset at. - n = 65 unique code values on expected
+  format but not found in lookup (ERROR_NOT_FOUND), across n = 3,007 records (1997-2016).
+  At 3-character level; n = 51 values match lookup asset, n = 14 do not. Some values
+  are discontinued codes. **`diagnosis_01`–`diagnosis_30`**: - n = 453 unique full-length
+  codes failed lookup, affecting 16,383 records (1987-2020). Of these, 200 codes matched
+  at 3chr level, salvaging 6,881 records. Overall, 253 codes failed lookup at both
+  levels, affecting 9,502 records. - n = 255 unique code values with format errors
+  (ERROR_FORMAT), across n = 7,886 records (1987–2019). At 3-character level; n =
+  108 values match the lookup asset, n = 3 value matches format but is not found in
+  the lookup (`V45W-1`, `V46WXC`, `V53XXC`), and n = 144 values do not match the expected
+  format lookup at 3-character level. - n = 198 unique code values on expected format
+  but not found in lookup (ERROR_NOT_FOUND), across n = 8,497 records (1987–2020).
+  Roughly half inferred as ICD-9 V-series (likely valid, though not listed in the
+  ICD-9-SE asset except for a small set). Others inferred as ICD-10, including known
+  discontinued codes. At 3-character level; n = 92 values match lookup, 96 do not.
+  - Some of the malformed codes (`ERROR_FORMAT`) are valid ATC codes. **`external_cause_1`–`external_cause_4`**:
+  - n = 3 unique code values with format errors (ERROR_FORMAT), across n = 3 records
+  (2006–2018): `J01DA64`, `V03AF`, `V43AB`. At 3-character level; all n = 3 values
+  match the lookup asset."
+idcols_individuals: "avanid"
+idcols_observations:
+- "avanid"
+- "avan_ridx"
+observation_descriptions: "Each observation represents a hospital stay, associated
+  with one main diagnosis, up to 30 additional diagnoses, up to 30 procedures, and
+  up to 4 external causes."
+tags:
+- "patient register"
+- "national board of health and welfare"
+- "socialstyrelsen"
+categories: "register"
+projects: "predict"
+pis: "Beatrice Melin"
+source: "National Board of Health and Welfare"
+origin: ~
+notes:
+- "The data extraction from The National Board of Health and Welfare (Socialstyrelsen)
+  is based on the application registration number (diarenummer): 13819/2024"
+- "Case manager at National Board of Health and Welfare was Anna Pilblad"
+ingest_date: "2025-03-12"
+confidential: yes

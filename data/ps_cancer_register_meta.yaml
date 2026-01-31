@@ -1,0 +1,62 @@
+filename: "ps_cancer_register.tsv"
+puddle_id: "in_0021"
+source_code: "~/avan-prod/data/in_0021/code/20_tidy/20_tidy_cancer.Rmd"
+source_data: "~/avan-prod/data/in_0021/02_silver/ps_cancer_register.tsv"
+n_individuals: 14623
+n_observations: 19153
+n_columns: 22
+title: "National Cancer Register"
+subtitle: "Data extract from the National Board of Health and Welfare (Socialstyrelsen)"
+version: 1.0
+info:
+- "This dataset is an extract from the National Cancer Register, covering the period
+  from 1958-01-01 to 2022-03-31. It includes all individuals in the Predict cohort
+  who included in the National Cancer Register."
+- "Date of extraction: 2025-02-25"
+- "Official site: https://www.socialstyrelsen.se/statistik-och-data/register/cancerregistret/"
+- "The National Board of Health and Welfare (Socialstyrelsen) provides a variable
+  list online. Variable names correspond to the `colname_silver` value in Avan's internal
+  codebook: https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/dokument-webb/statistik/register-variabelforteckning-cancerregistret.xlsx"
+info_internal:
+- "PREDICT received a codebook (Excel) specific for this data extraction: 01_bronze/03_documentation/Variabellista_13819_2024.xlsx"
+- "From personal correspondence with National Board of Health and Welfare; What is
+  referred to in the Cancer Registry as `ICDO10`/`SNOMEDO10` corresponds to ICD-O-2
+  and SNOMED2, but with certain elements of ICD-10. In practice, this means that hematological
+  malignancies do not fall under C42 as they do according to ICD-O-2, but under their
+  respective locations according to ICD-10. There is no edition of ICD-O-10 / SNOMED10."
+- "Preliminary tests (without saving code or results) comparing this data with the
+  Regional Cancer Register extract suggest that `ICDO10` in this dataset corresponds
+  to `icdo2_code` in the RCC. Consequently, we have renamed `ICDO10`/`SNOMEDO10` to
+  `icdo2_code`/`snomed2_code` to match the RCC data."
+- "The topography part of ICD-O-2 and ICD-O-3 are specified to be identical (and equal
+  to ICD10 chapter II), yet in this dataset there are observations where the two differ
+  (`icdo2_code` != `icdo3_code`). ICD-O-3 is defined for the range C00.0 to C80.9.
+  Most of the observations where ICD-O-2 and ICD-O-3 differ have ICD-O-2 values outside
+  this range (C90.0-D47.3). Perhaps the out-of-range ICD-O-2 codes in part stem from
+  the ICD-10 elements that are sprinkled in."
+- "In some cases it is necessary to combine the values of multiple columns to obtain
+  a combination that uniquely identifies an observation. To simplify unique referencing
+  to specific observations we have created an internal observation identifier (avan_ridx);
+  a row index that matches the rows in the original file."
+idcols_individuals: "avanid"
+idcols_observations:
+- "avanid"
+- "avan_ridx"
+observation_descriptions: "Each observation represents a registered cancer diagnosis.
+  One individual may have multiple diagnoses, even on the same date."
+tags:
+- "cancer"
+- "diagnosis"
+- "national board of health and welfare"
+- "socialstyrelsen"
+categories: "register"
+projects: "predict"
+pis: "Beatrice Melin"
+source: "National Board of Health and Welfare"
+origin: ~
+notes:
+- "The data extraction from The National Board of Health and Welfare (Socialstyrelsen)
+  is based on the application registration number (diarenummer): 13819/2024"
+- "Case manager at National Board of Health and Welfare was Anna Pilblad"
+ingest_date: "2025-03-12"
+confidential: yes
