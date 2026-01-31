@@ -25,6 +25,9 @@
     .subtitle { margin-top: 0.25rem; color: #dfe7f2; }
     main { max-width: 1200px; margin: 1.25rem auto; padding: 0 1rem 3rem; }
 
+    .introduction { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin: 1rem 0 1.25rem; }
+    .introduction h1, .introduction h2, .introduction h3 { color: var(--brand-primary); }
+
     .dataset-card { border: 1px solid var(--border); border-radius: 10px; background: var(--soft); margin-bottom: 1.25rem; overflow: hidden; }
     .dataset-header { padding: 1rem 1rem 0.75rem; border-bottom: 1px solid var(--border); background: #fff; }
     .dataset-title { margin: 0; color: var(--brand-primary); }
@@ -76,57 +79,69 @@
     </div>
   </div>
 
-  <main id="app"></main>
+  <main id="app">
+    {% if intro_html %}
+    <section class="introduction">
+      {{ intro_html | safe }}
+    </section>
+    {% endif %}
+  </main>
 
   <script id="dataset-json" type="application/json">{{ data_json | safe }}</script>
 
   <script>
   (function(){
     const state = { datasets: [], selected: new Map() };
-    function $(s, r=document){ return r.querySelector(s); }
-    function $all(s, r=document){ return Array.from(r.querySelectorAll(s)); }
+    const $ = (s,r=document)=>r.querySelector(s);
+    const $all = (s,r=document)=>Array.from(r.querySelectorAll(s));
+
     function parseData(){ try{ return JSON.parse($('#dataset-json').textContent.trim())||[] }catch(e){ return []; } }
     function escapeHTML(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
     function csvEscape(v){ const s=String(v).replace(/\r?\n/g,' '); return (s.includes(',')||s.includes('"'))? '"'+s.replace(/"/g,'""')+'"': s; }
-    function toCSVRecord(ds,v){ return {dataset_id:ds.id,dataset_title:ds.title||ds.id,variable_name:v.name,label:v.label||'',source_variable_name:v.source||'',type:v.type||'',category:(v.categories||[]).join('|'),notes:v.notes||''}; }
 
-    function computeCategoryCounts(ds){
-      const m=new Map();
-      for(const v of ds.variables){
-        for(const c of (v.categories||[])){
-          m.set(c,(m.get(c)||0)+1);
-        }
-      }
-      return Array.from(m.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
+    function toCSVRecord(ds,v){ return { dataset_id:ds.id, dataset_title:ds.title||ds.id, variable_name:v.name, label:v.label||'', source_variable_name:v.source||'', type:v.type||'', category:(v.categories||[]).join('|'), notes:v.notes||'' }; }
+
+    function computeCategoryCounts(ds){ const m=new Map(); for(const v of Object.values(ds.var_map||{})){ for(const c of (v.categories||[])){ m.set(c,(m.get(c)||0)+1);} } return Array.from(m.entries()).sort((a,b)=>a[0].localeCompare(b[0])); }
+
+    function isGroup(v){ return !!v.is_group; }
+
+    function isGroupFullySelected(ds, group){
+      return (group.members||[]).every(name => state.selected.has(ds.id+'::'+name));
+    }
+
+    function selectGroup(ds, group){
+      (group.members||[]).forEach(name=>{
+        const leaf = (ds.var_map||{})[name];
+        if(leaf){ state.selected.set(ds.id+'::'+name, toCSVRecord(ds, leaf)); }
+      });
+    }
+
+    function deselectGroup(ds, group){
+      (group.members||[]).forEach(name=> state.selected.delete(ds.id+'::'+name));
     }
 
     function render(){
-      const app = $('#app');
-      app.innerHTML='';
+      const app = document.getElementById('app');
 
-      state.datasets.forEach(ds=>{
+      state.datasets.forEach(ds => {
         const section = document.createElement('section');
-        section.className='dataset-card';
-        section.dataset.datasetId = ds.id;
+        section.className='dataset-card'; section.dataset.datasetId = ds.id;
 
-        const header = document.createElement('div');
-        header.className='dataset-header';
+        const header = document.createElement('div'); header.className='dataset-header';
         header.innerHTML=`
           <h2 class="dataset-title">${escapeHTML(ds.title||ds.id)}</h2>
           ${ds.subtitle?`<div class="dataset-subtitle">${escapeHTML(ds.subtitle)}</div>`:''}
           ${ds.info?`<div class="dataset-info">${escapeHTML(ds.info)}</div>`:''}`;
         section.appendChild(header);
 
-        const controls = document.createElement('div');
-        controls.className='controls';
+        const controls = document.createElement('div'); controls.className='controls';
         controls.innerHTML=`
           <input type="search" placeholder="Search… (label, variable, notes)" aria-label="Search variables">
           <select data-role="filterCat" aria-label="Filter by category"><option value="">All categories</option></select>
-          <div class="info">${ds.variables.length} variables</div>`;
+          <div class="info">${ds.variables.length} items</div>`;
         section.appendChild(controls);
 
-        const tableWrap = document.createElement('div');
-        tableWrap.className='table-wrap';
+        const tableWrap = document.createElement('div'); tableWrap.className='table-wrap';
         tableWrap.innerHTML=`
           <table>
             <thead><tr>
@@ -143,124 +158,104 @@
 
         const catCounts = computeCategoryCounts(ds);
         const ddl = controls.querySelector('select[data-role="filterCat"]');
-        for(const [cat,_] of catCounts){
-          const opt=document.createElement('option');
-          opt.value=cat;
-          opt.textContent=cat;
-          ddl.appendChild(opt);
-        }
+        for(const [cat,_] of catCounts){ const opt=document.createElement('option'); opt.value=cat; opt.textContent=cat; ddl.appendChild(opt); }
 
         const tbody = section.querySelector('tbody');
-        ds.variables.forEach(v=> tbody.appendChild(renderRow(ds,v)));
+        ds.variables.forEach(v=>{
+          v._search = [v.label, v.name, v.notes, ...(v.members||[])].filter(Boolean).join(' ');
+          tbody.appendChild(renderRow(ds, v));
+        });
 
         const search = controls.querySelector('input[type="search"]');
         search.addEventListener('input', ()=>applyFilter(section, ds));
-
         ddl.addEventListener('change', ()=>applyFilter(section, ds));
-
         section.querySelector('[data-action="toggle-all"]').addEventListener('change', (e)=>{
           const rows = $all('tbody tr', section).filter(r=>r.style.display!=='none');
-          rows.forEach(r=>{
-            const cb=r.querySelector('input[type="checkbox"]');
-            cb.checked=e.target.checked;
-            cb.dispatchEvent(new Event('change'));
-          });
+          rows.forEach(r=>{ const cb=r.querySelector('input[type="checkbox"]'); cb.checked=e.target.checked; cb.dispatchEvent(new Event('change')); });
         });
 
-        app.appendChild(section);
+        document.getElementById('app').appendChild(section);
       });
+
       updateCartUI();
     }
 
     function renderRow(ds, v){
-      const tr=document.createElement('tr');
-      const key=ds.id+'::'+v.name;
-      tr.dataset.key=key;
+      const tr = document.createElement('tr');
+      const key = ds.id+'::'+v.name;
+      tr.dataset.key = key;
 
-      tr.innerHTML=`
-        <td><input type="checkbox" aria-label="Select ${escapeHTML(v.label||v.name)}"></td>
+      const labelText = v.is_group ? `${v.label} (${(v.members||[]).length} fields)` : (v.label || v.name);
+      const catsHTML = `<div class="chips">${(v.categories||[]).map(c=>`<span class=\"chip\">${escapeHTML(c)}</span>`).join('')}</div>`;
+
+      tr.innerHTML = `
+        <td><input type="checkbox" aria-label="Select ${escapeHTML(labelText)}"></td>
         <td>
-          <div class="var-label">${escapeHTML(v.label||v.name)}</div>
+          <div class="var-label">${escapeHTML(labelText)}</div>
           ${v.notes?`<details><summary>Notes</summary><div class="var-notes">${escapeHTML(v.notes)}</div></details>`:''}
         </td>
         <td class="mono hide-sm">${escapeHTML(v.name)}</td>
         <td class="mono hide-sm">${escapeHTML(v.source||'')}</td>
         <td class="hide-sm">${escapeHTML(v.type||'')}</td>
-        <td class="hide-sm">
-          <div class="chips">
-            ${(v.categories||[]).map(c=>`<span class='chip'>${escapeHTML(c)}</span>`).join('')}
-          </div>
-        </td>`;
+        <td class="hide-sm">${catsHTML}</td>`;
 
       const cb = tr.querySelector('input[type="checkbox"]');
-      cb.checked = state.selected.has(key);
+      if (v.is_group) cb.checked = isGroupFullySelected(ds, v); else cb.checked = state.selected.has(key);
+
       cb.addEventListener('change', ()=>{
-        if(cb.checked) state.selected.set(key, toCSVRecord(ds,v));
-        else state.selected.delete(key);
+        if (v.is_group){
+          if (cb.checked) selectGroup(ds, v); else deselectGroup(ds, v);
+        } else {
+          if (cb.checked) state.selected.set(key, toCSVRecord(ds, v)); else state.selected.delete(key);
+        }
         updateCartUI();
+        // Refresh all group checkboxes in this dataset
+        const rows = $all('tbody tr', tr.closest('section'));
+        rows.forEach(row=>{
+          const k = row.dataset.key; const vv = (ds._byRow||{})[k];
+          if (vv && vv.is_group){ const c = row.querySelector('input[type="checkbox"]'); c.checked = isGroupFullySelected(ds, vv); }
+        });
       });
 
+      ds._byRow = ds._byRow || {}; ds._byRow[key] = v;
       return tr;
     }
 
     function applyFilter(section, ds){
       const q = section.querySelector('input[type="search"]').value.trim().toLowerCase();
       const cat = section.querySelector('select[data-role="filterCat"]').value;
-
       const rows = $all('tbody tr', section);
       rows.forEach(r=>{
-        const v = ds._byKey[r.dataset.key];
-        const blob = [v.label, v.name, v.notes].filter(Boolean).join(' ').toLowerCase();
+        const v = (ds._byRow||{})[r.dataset.key];
+        const blob = (v._search||'').toLowerCase();
         const hit = !q || blob.includes(q);
-        const catOk = !cat || (v.categories||[]).includes(cat);
+        const catOk = !cat || (v.categories||[]).includes(cat) || (v.is_group && (v.members||[]).some(name => (ds.var_map[name]||{}).categories?.includes(cat)));
         r.style.display = (hit && catOk) ? '' : 'none';
       });
-
       section.querySelector('[data-action="toggle-all"]').checked = false;
     }
 
     function updateCartUI(){
-      const n=state.selected.size;
-      $('#cart-count').textContent=String(n);
-      $('#download-csv').disabled = n===0;
-      $('#clear-selection').disabled = n===0;
+      const n = state.selected.size; document.getElementById('cart-count').textContent=String(n);
+      document.getElementById('download-csv').disabled = n===0; document.getElementById('clear-selection').disabled = n===0;
     }
 
     function downloadCSV(){
-      const rows = Array.from(state.selected.values());
-      if(!rows.length) return;
-
+      const rows = Array.from(state.selected.values()); if (!rows.length) return;
       const headers=['dataset_id','dataset_title','variable_name','label','source_variable_name','type','category','notes'];
-      const csv=[headers.join(',')].concat(
-        rows.map(r=>headers.map(h=>csvEscape(r[h]??'')).join(','))
-      ).join('\n');
-
-      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      a.href=url;
-      a.download='predict_variables.csv';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      const csv=[headers.join(',')].concat(rows.map(r=>headers.map(h=>csvEscape(r[h]??'')).join(','))).join('\n');
+      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');
+      a.href=url; a.download='predict_variables.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
     }
 
-    function clearSelection(){
-      state.selected.clear();
-      document.querySelectorAll('tbody input[type="checkbox"]').forEach(cb=>cb.checked=false);
-      updateCartUI();
-    }
+    function clearSelection(){ state.selected.clear(); document.querySelectorAll('tbody input[type="checkbox"]').forEach(cb=>cb.checked=false); updateCartUI(); }
 
     window.addEventListener('DOMContentLoaded', ()=>{
       state.datasets = parseData();
-      state.datasets.forEach(ds=>{
-        ds._byKey={};
-        ds.variables.forEach(v=>{ ds._byKey[ds.id+'::'+v.name]=v; });
-      });
+      state.datasets.forEach(ds=>{ ds.var_map = ds.var_map || {}; });
       render();
-      $('#download-csv').addEventListener('click', downloadCSV);
-      $('#clear-selection').addEventListener('click', clearSelection);
+      document.getElementById('download-csv').addEventListener('click', downloadCSV);
+      document.getElementById('clear-selection').addEventListener('click', clearSelection);
     });
 
   })();

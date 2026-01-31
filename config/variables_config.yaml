@@ -1,0 +1,28 @@
+# Grouping rules for variables. Non-technical editors can tweak these safely.
+# Each group has:
+#  - pattern: a regular expression that matches variable names to include in the group
+#  - label:   the display label for the group row in the UI
+#  - notes:   description shown in the UI
+#  - csv_expand: set to "members" (export all real variables in CSV)
+#  - category_strategy: union|intersection|override
+#  - categories_override: only used if category_strategy=override
+#  - priority: optional integer. Lower number = higher priority when multiple patterns match
+
+groups:
+  contributing_cod:
+    pattern: "^cod_contributing\\d{0,1}_?\\d{2}$" 
+    source_variable_name_grouped: "MORSAK1-MORSAK17"
+    label: "Contributing cause(s) of death"
+    notes: "ICD-coded contributing causes across up to 17 fields."
+    csv_expand: "members"
+    category_strategy: "union"
+    categories_override: []
+    priority: 10
+
+
+ignore:
+  names:
+    - diagnosis_date_original
+  patterns:
+    - ".*birth.*"
+
