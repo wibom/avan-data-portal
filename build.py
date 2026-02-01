@@ -430,6 +430,45 @@ def assemble_dataset(
         if v not in variables:
             variables.append(v)
 
+    # Heuristic to determine whether a notes field is "long" enough
+    # to require a client-side expand/collapse. This avoids unreliable
+    # visual measurements in the browser (line-clamp) by computing a
+    # simple boolean at build time. Criteria:
+    # - >= 3 explicit newlines -> long
+    # - OR length > 240 characters -> long
+    def _notes_is_long(text: Optional[str]) -> bool:
+        if not text:
+            return False
+        if isinstance(text, str) and text.count('\n') >= 3:
+            return True
+        if isinstance(text, str) and len(text) > 240:
+            return True
+        return False
+
+    # Annotate all variables we expose in var_map_all and synthetic groups
+    for name, info in var_map_all.items():
+        info['notes_is_long'] = _notes_is_long(info.get('notes'))
+
+    for g in groups:
+        # groups may have a notes field
+        if isinstance(g, dict):
+            g['notes_is_long'] = _notes_is_long(g.get('notes'))
+
+    # Also annotate the visible var_map entries (after ignore/group removal)
+    for name, info in var_map.items():
+        info['notes_is_long'] = _notes_is_long(info.get('notes'))
+
+    # Ensure each variable entry in `variables` inherits the flag when possible
+    for idx, v in enumerate(variables):
+        if isinstance(v, dict):
+            # groups already annotated; for variables, prefer var_map_all metadata
+            name = v.get('name')
+            if name and name in var_map_all:
+                v['notes_is_long'] = var_map_all[name].get('notes_is_long', False)
+            else:
+                # fallback to any notes_is_long present on the dict
+                v['notes_is_long'] = v.get('notes_is_long', False)
+
     # Prefer Markdown description in ./data/<dataset>_register_meta.md
     info_md, md_path = load_dataset_markdown(ds_id, meta_path)
     if md_path:

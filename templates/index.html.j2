@@ -329,59 +329,45 @@
         <td class="hide-sm">${escapeHTML(v.type||'')}</td>
         <td class="hide-sm">${catsHTML}</td>`;
 
-      // Add notes after rendering with smart expand/collapse
+      // Add notes after rendering (use backend flag `notes_is_long` when present)
       if (v.notes) {
         const notesContainer = tr.querySelector('.var-notes-container');
-        
+
         const previewDiv = document.createElement('div');
         previewDiv.className = 'var-notes-preview';
         previewDiv.textContent = v.notes;
         notesContainer.appendChild(previewDiv);
-        
-        // Check if text is clipped by measuring clamped vs unclamped height
-        requestAnimationFrame(()=>{
-          const clampedHeight = previewDiv.offsetHeight;
-          
-          // Create temporary unclamped version to measure full height
-          const testDiv = document.createElement('div');
-          testDiv.style.cssText = 'position: absolute; visibility: hidden; width: ' + previewDiv.offsetWidth + 'px; white-space: pre-wrap; word-break: break-word; color: var(--muted); font-size: 0.9rem;';
-          testDiv.textContent = v.notes;
-          document.body.appendChild(testDiv);
-          const fullHeight = testDiv.offsetHeight;
-          document.body.removeChild(testDiv);
-          
-          const isClipped = fullHeight > clampedHeight + 2;
-          
-          if (isClipped) {
-            const fullDiv = document.createElement('div');
-            fullDiv.className = 'var-notes-full';
-            fullDiv.style.display = 'none';
-            fullDiv.textContent = v.notes;
-            
-            const toggleBtn = document.createElement('button');
-            toggleBtn.className = 'var-notes-toggle';
-            toggleBtn.textContent = 'More\u2026';
-            
-            let isExpanded = false;
-            toggleBtn.addEventListener('click', (e)=>{
-              e.preventDefault();
-              e.stopPropagation();
-              isExpanded = !isExpanded;
-              if (isExpanded) {
-                previewDiv.style.display = 'none';
-                fullDiv.style.display = 'block';
-                toggleBtn.textContent = 'Less';
-              } else {
-                previewDiv.style.display = '-webkit-box';
-                fullDiv.style.display = 'none';
-                toggleBtn.textContent = 'More\u2026';
-              }
-            });
-            
-            notesContainer.appendChild(fullDiv);
-            notesContainer.appendChild(toggleBtn);
-          }
-        });
+
+        // If backend marked notes as long, render expandable full text + toggle
+        if (v.notes_is_long) {
+          const fullDiv = document.createElement('div');
+          fullDiv.className = 'var-notes-full';
+          fullDiv.style.display = 'none';
+          fullDiv.textContent = v.notes;
+
+          const toggleBtn = document.createElement('button');
+          toggleBtn.className = 'var-notes-toggle';
+          toggleBtn.textContent = 'More\u2026';
+
+          let isExpanded = false;
+          toggleBtn.addEventListener('click', (e)=>{
+            e.preventDefault();
+            e.stopPropagation();
+            isExpanded = !isExpanded;
+            if (isExpanded) {
+              previewDiv.style.display = 'none';
+              fullDiv.style.display = 'block';
+              toggleBtn.textContent = 'Less';
+            } else {
+              previewDiv.style.display = '-webkit-box';
+              fullDiv.style.display = 'none';
+              toggleBtn.textContent = 'More\u2026';
+            }
+          });
+
+          notesContainer.appendChild(fullDiv);
+          notesContainer.appendChild(toggleBtn);
+        }
       }
 
       const cb = tr.querySelector('input[type="checkbox"]');
