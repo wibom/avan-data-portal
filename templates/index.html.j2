@@ -50,7 +50,10 @@
     tbody td { padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--border); vertical-align: top; }
     tbody tr:hover { background: #fcfcfd; }
     .var-label { font-weight: 600; }
-    .var-notes { color: var(--muted); font-size: 0.9rem; }
+    .var-notes-preview { color: var(--muted); font-size: 0.9rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; margin-bottom: 0.25rem; }
+    .var-notes-full { color: var(--muted); font-size: 0.9rem; margin-top: 0.5rem; white-space: pre-wrap; word-break: break-word; }
+    .var-notes-toggle { background: none; border: none; color: var(--brand-primary); cursor: pointer; font-size: 0.9rem; padding: 0; margin-top: 0.25rem; text-decoration: underline; }
+    .var-notes-toggle:hover { text-decoration: none; font-weight: 600; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.9rem; }
 
     .chips { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -139,6 +142,15 @@
     function splitMarkdownParagraphs(md){
       // Split on blank lines into paragraphs; keep single newlines within a paragraph
       return String(md).trim().split(/\n\s*\n/);
+    }
+
+    function splitNotesPreviewAndDetails(notes){
+      // Split notes into preview (first 3 lines) and details (rest)
+      const lines = String(notes).split('\n');
+      if (lines.length <= 3) return { preview: notes, details: null };
+      const preview = lines.slice(0, 3).join('\n');
+      const details = lines.slice(3).join('\n');
+      return { preview, details };
     }
 
     function toCSVRecord(ds,v){ return {
@@ -310,12 +322,67 @@
         <td><input type="checkbox" aria-label="Select ${escapeHTML(labelText)}"></td>
         <td>
           <div class="var-label">${escapeHTML(labelText)}</div>
-          ${v.notes?`<details><summary>Notes</summary><div class="var-notes">${escapeHTML(v.notes)}</div></details>`:''}
+          <div class="var-notes-container"></div>
         </td>
         <td class="mono hide-sm">${escapeHTML(v.name)}</td>
         <td class="mono hide-sm">${escapeHTML(v.source||'')}</td>
         <td class="hide-sm">${escapeHTML(v.type||'')}</td>
         <td class="hide-sm">${catsHTML}</td>`;
+
+      // Add notes after rendering with smart expand/collapse
+      if (v.notes) {
+        const notesContainer = tr.querySelector('.var-notes-container');
+        
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'var-notes-preview';
+        previewDiv.textContent = v.notes;
+        notesContainer.appendChild(previewDiv);
+        
+        // Check if text is clipped by measuring clamped vs unclamped height
+        requestAnimationFrame(()=>{
+          const clampedHeight = previewDiv.offsetHeight;
+          
+          // Create temporary unclamped version to measure full height
+          const testDiv = document.createElement('div');
+          testDiv.style.cssText = 'position: absolute; visibility: hidden; width: ' + previewDiv.offsetWidth + 'px; white-space: pre-wrap; word-break: break-word; color: var(--muted); font-size: 0.9rem;';
+          testDiv.textContent = v.notes;
+          document.body.appendChild(testDiv);
+          const fullHeight = testDiv.offsetHeight;
+          document.body.removeChild(testDiv);
+          
+          const isClipped = fullHeight > clampedHeight + 2;
+          
+          if (isClipped) {
+            const fullDiv = document.createElement('div');
+            fullDiv.className = 'var-notes-full';
+            fullDiv.style.display = 'none';
+            fullDiv.textContent = v.notes;
+            
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'var-notes-toggle';
+            toggleBtn.textContent = 'More\u2026';
+            
+            let isExpanded = false;
+            toggleBtn.addEventListener('click', (e)=>{
+              e.preventDefault();
+              e.stopPropagation();
+              isExpanded = !isExpanded;
+              if (isExpanded) {
+                previewDiv.style.display = 'none';
+                fullDiv.style.display = 'block';
+                toggleBtn.textContent = 'Less';
+              } else {
+                previewDiv.style.display = '-webkit-box';
+                fullDiv.style.display = 'none';
+                toggleBtn.textContent = 'More\u2026';
+              }
+            });
+            
+            notesContainer.appendChild(fullDiv);
+            notesContainer.appendChild(toggleBtn);
+          }
+        });
+      }
 
       const cb = tr.querySelector('input[type="checkbox"]');
       if (v.is_group) cb.checked = isGroupFullySelected(ds, v); else cb.checked = state.selected.has(key);
