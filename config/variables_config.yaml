@@ -42,7 +42,17 @@ groups:
     category_strategy: "union"
     categories_override: []
     priority: 10
-
+  diagnosis_all:
+    pattern: "^diagnosis_\\d{0,1}_?\\d{2}$" 
+    source_variable_name_grouped: "DIA1-DIA30"
+    label: "Diagnosis"
+    notes: > 
+      "ICD-code. The order of `diagnosis_nn` variables is not systematically 
+      meaningful across the dataset. Year of introduction: 1964"
+    csv_expand: "members"
+    category_strategy: "union"
+    categories_override: []
+    priority: 10
 
 ignore:
   names:

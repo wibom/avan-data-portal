@@ -367,6 +367,9 @@ def assemble_dataset(
     if codebook_path and codebook_path.exists():
         cb_data = read_yaml(codebook_path)
         var_map = extract_var_map_from_codebook(cb_data)
+        # Attach source filename to each variable
+        for v in var_map.values():
+            v['_source_yaml'] = codebook_path.name
         provenance.append((codebook_path.name, sha256_file(codebook_path)))
 
     # Ignore rules

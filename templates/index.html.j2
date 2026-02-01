@@ -174,13 +174,8 @@
     }
 
     function toCSVRecord(ds,v){ return {
-      dataset_id:ds.id,
-      dataset_title:ds.title||ds.id,
-      variable_name:v.name,
-      label:v.label||'',
-      source_variable_name:v.source||'',
-      type:v.type||'',
-      category:(v.categories||[]).join('|'),
+      yaml_file:v._source_yaml||'unknown',
+      variable_name:v.name||'',
       notes:v.notes||''
     }; }
 
@@ -452,7 +447,7 @@
 
     function downloadCSV(){
       const rows = Array.from(state.selected.values()); if (!rows.length) return;
-      const headers=['dataset_id','dataset_title','variable_name','label','source_variable_name','type','category','notes'];
+      const headers=['yaml_file','variable_name','notes'];
       const csv=[headers.join(',')]
         .concat(rows.map(r=>headers.map(h=>csvEscape(r[h]??'')).join(',')))
         .join('\n');
