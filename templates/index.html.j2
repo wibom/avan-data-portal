@@ -36,7 +36,6 @@
     .dataset-info p { margin: 0.25rem 0; }
     .dataset-info code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: #f1f3f5; padding: 0 .25rem; border-radius: 4px; }
 
-    /* Toggle below description, above filters */
     .dataset-toggle-wrap { padding: 0.8rem 1rem; background: var(--soft); border-bottom: 1px solid var(--border); }
     .dataset-body.is-collapsed { display: none; }
 
@@ -103,36 +102,38 @@
 
     function parseData(){ try{ return JSON.parse($('#dataset-json').textContent.trim())||[] }catch(e){ return []; } }
     function escapeHTML(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
-    function csvEscape(v){ const s=String(v).replace(/\r?\n/g,' '); return (s.includes(',')||s.includes('"'))? '"'+s.replace(/"/g,'\"\"')+'"': s; }
+    function csvEscape(v){ const s=String(v).replace(/\r?\n/g,' '); return (s.includes(',')||s.includes('"'))? '"'+s.replace(/"/g,'""')+'"': s; }
 
-    // --- Minimal inline Markdown renderer for ds.info paragraphs ---
-    // Supports: `code`, **strong**, *emphasis*, __strong__, _emphasis_, ~~strike~~,
-    // [text](url), and auto-linking bare http(s) URLs. Allows lightweight HTML already in text.
+    // --- Inline Markdown renderer for descriptions ---
+    // Supports: [text](url), `code`, **strong**, *em*, __strong__, _em_, ~~del~~, and auto-linking bare URLs.
     function markdownToHtml(input){
       if (input == null) return '';
       let html = String(input);
 
-      // 1) Markdown links [text](url)
-      html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (m, text, url) => {
-        return `<a href="${url}" target="_blank" rel="noopener">${escapeHTML(text)}</a>`;
-      });
+      // Links [text](url)
+      html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (m, text, url) =>
+        `<a href="${url}" target="_blank" rel="noopener">${escapeHTML(text)}</a>`);
 
-      // 2) Inline code `code` (escape inner)
+      // Inline code
       html = html.replace(/`([^`]+)`/g, (m, code) => `<code>${escapeHTML(code)}</code>`);
 
-      // 3) Bold/italic/strike (order matters: strong before em)
+      // Strong first, then em
       html = html.replace(/\*\*(?=\S)(.+?)(?<=\S)\*\*/g, '<strong>$1</strong>');
       html = html.replace(/__(?=\S)(.+?)(?<=\S)__/g, '<strong>$1</strong>');
       html = html.replace(/(?<!\*)\*(?=\S)(.+?)(?<=\S)(?<!\*)\*/g, '<em>$1</em>');
       html = html.replace(/_(?=\S)(.+?)(?<=\S)_/g, '<em>$1</em>');
       html = html.replace(/~~(?=\S)(.+?)(?<=\S)~~/g, '<del>$1</del>');
 
-      // 4) Auto-link bare URLs (skip those already inside an href)
+      // Auto-link bare URLs (avoid already linked)
       html = html.replace(/(^|[\s(>])((https?:\/\/[^\s<>"')]+))(?=[\s<)"']|$)/g,
         (m, pre, url) => `${pre}<a href="${url}" target="_blank" rel="noopener">${url}</a>`);
 
-      // Keep lightweight HTML such as <br> as-is.
       return html;
+    }
+
+    function splitMarkdownParagraphs(md){
+      // Split on blank lines into paragraphs; keep single newlines within a paragraph
+      return String(md).trim().split(/\n\s*\n/);
     }
 
     function toCSVRecord(ds,v){ return {
@@ -175,13 +176,21 @@
         const section = document.createElement('section');
         section.className='dataset-card'; section.dataset.datasetId = ds.id;
 
-        // Header with Markdown-enabled info paragraphs
+        // Header with description: prefer info_md; else fall back to info[]
         const header = document.createElement('div'); header.className='dataset-header';
-        const infoHTML = ds.info
-          ? `<div class="dataset-info">
-               ${ds.info.map(p => `<p>${markdownToHtml(p)}</p>`).join('')}
-             </div>`
-          : '';
+
+        let infoHTML = '';
+        if (ds.info_md && String(ds.info_md).trim()){
+          const paras = splitMarkdownParagraphs(ds.info_md);
+          infoHTML = `<div class="dataset-info">${
+            paras.map(p => `<p>${markdownToHtml(p)}</p>`).join('')
+          }</div>`;
+        } else if (Array.isArray(ds.info) && ds.info.length){
+          infoHTML = `<div class="dataset-info">${
+            ds.info.map(p => `<p>${markdownToHtml(p)}</p>`).join('')
+          }</div>`;
+        }
+
         header.innerHTML=`
           <h2 class="dataset-title">${escapeHTML(ds.title||ds.id)}</h2>
           ${ds.subtitle?`<div class="dataset-subtitle">${escapeHTML(ds.subtitle)}</div>`:''}

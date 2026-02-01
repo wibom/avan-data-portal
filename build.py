@@ -1,310 +1,477 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Builds a self-contained variables browser HTML.
+
+What this script does:
+- Scans ./data for <dataset>_register_codebook.yaml and <dataset>_register_meta.yaml
+- For each dataset:
+    * Loads variable codebook and meta YAML
+    * Prefers dataset description from a Markdown file located in ./data,
+      named exactly like the meta YAML but with .md extension:
+          <dataset>_register_meta.md
+      (e.g., 'ps_cancer_register_meta.md')
+      If the Markdown file is missing, falls back to YAML 'info:' list (if present)
+    * Applies groups and ignore rules from ./config/variables_config.yaml
+    * Outputs a compact JSON structure that the template consumes
+- Renders ./templates/index.html.j2 to ./dist/variables_browser.html
+- Embeds per-file provenance (SHA-256) and a combined digest
+"""
+
 from __future__ import annotations
-from pathlib import Path
-import hashlib
+
 import json
 import re
-from typing import Any, Dict, List, Tuple, Set
+import fnmatch
+import hashlib
+from pathlib import Path
+from typing import Dict, List, Tuple, Any, Optional
 
-import yaml
+import yaml  # PyYAML
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-# --------------------------------------------------------------------------------------
-# PREDICT / Avan data portal — build script
-#
-# Features:
-# - Reads dataset meta + codebooks from ./data
-# - Supports external intro text (Markdown or HTML) from ./content
-# - Supports variable grouping & UI overrides from ./config/variables_config.yaml
-# - Supports ignore list (names and regex patterns)
-# - Emits variables (and synthetic group rows) per dataset into a single self-contained
-#   HTML at ./dist/variables_browser.html rendered by templates/index.html.j2
-#
-# Notes:
-# - "groups" collapse many variables into a single logical UI row (is_group=True);
-#   selection in the UI expands to member variables for CSV export (handled in JS).
-# - "ignore" removes variables entirely (pre-grouping) from UI and CSV.
-# - Group "source_variable_name_grouped" shows in the "Source variable name" column for
-#   the synthetic row; member variables keep their own 'source' strings.
-# --------------------------------------------------------------------------------------
+# -------- Paths --------
+ROOT_DIR = Path(__file__).resolve().parent
+DATA_DIR = ROOT_DIR / "data"
+CONTENT_DIR = ROOT_DIR / "content"
+CONFIG_DIR = ROOT_DIR / "config"
+TEMPLATES_DIR = ROOT_DIR / "templates"
+DIST_DIR = ROOT_DIR / "dist"
 
-DATA_DIR = Path("data")
-CONTENT_DIR = Path("content")
-CONFIG_DIR = Path("config")
-TEMPLATES_DIR = Path("templates")
-OUT_PATH = Path("dist/variables_browser.html")
+TEMPLATE_NAME = "index.html.j2"
+OUTPUT_HTML = DIST_DIR / "variables_browser.html"
 
+VARIABLES_CONFIG = CONFIG_DIR / "variables_config.yaml"
+INTRO_MD = CONTENT_DIR / "intro.md"
 
-# ---------------- Utilities ----------------
+# -------- Utilities --------
 
-def read_yaml(p: Path) -> Any:
-    with p.open("r", encoding="utf-8") as f:
+def sha256_bytes(b: bytes) -> str:
+    return hashlib.sha256(b).hexdigest()
+
+def sha256_file(path: Path) -> str:
+    return sha256_bytes(path.read_bytes())
+
+def dataset_id_from_filename(file: Path) -> str:
+    """
+    'ps_cancer_register_codebook.yaml' -> 'ps_cancer'
+    'ps_cause-of-death_register_meta.yaml' -> 'ps_cause-of-death'
+    """
+    name = file.name
+    if name.endswith("_register_codebook.yaml"):
+        return name[: -len("_register_codebook.yaml")]
+    if name.endswith("_register_meta.yaml"):
+        return name[: -len("_register_meta.yaml")]
+    # Fallback
+    stem = file.stem
+    stem = stem.replace("_register_codebook", "").replace("_register_meta", "")
+    return stem
+
+def read_yaml(path: Path) -> Any:
+    with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
+# --- Minimal Markdown -> HTML for intro.md (dataset Markdown rendered client-side) ---
 
-def sha256_file(p: Path) -> str:
-    h = hashlib.sha256()
-    with p.open("rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-# ---------------- Intro & Variables config ----------------
-
-def load_intro_html() -> str:
-    """Return HTML string for the optional introduction section."""
-    intro_md = CONTENT_DIR / "intro.md"
-    intro_html_file = CONTENT_DIR / "intro.html"
-    if intro_md.exists():
-        import markdown  # only import if needed
-        return markdown.markdown(intro_md.read_text(encoding="utf-8"))
-    if intro_html_file.exists():
-        return intro_html_file.read_text(encoding="utf-8")
-    return ""
-
-
-def _to_list(x):
-    if x is None:
-        return []
-    if isinstance(x, (list, tuple)):
-        return [str(t) for t in x if str(t).strip()]
-    if isinstance(x, str):
-        s = x.strip()
-        if not s:
-            return []
-        if "," in s:
-            return [t.strip() for t in s.split(",") if t.strip()]
-        if ";" in s:
-            return [t.strip() for t in s.split(";") if t.strip()]
-        return [s]
-    return [str(x)]
-
-
-def load_variables_config():
+def md_to_html_intro(text: str) -> str:
     """
-    Load ./config/variables_config.yaml (if present) and return:
-      - groups: List[Tuple[gid, priority, compiled_pattern, spec_dict]]
-      - ignore_names: Set[str]
-      - ignore_patterns: List[re.Pattern]
+    Convert intro.md to simple HTML.
+    If 'markdown' is available, use it; otherwise, join paragraphs.
     """
-    cfg_path = CONFIG_DIR / "variables_config.yaml"
-    if not cfg_path.exists():
-        return [], set(), []
+    if not text:
+        return ""
+    try:
+        import markdown  # optional
+        return markdown.markdown(text, extensions=["extra", "sane_lists", "tables"])
+    except Exception:
+        parts = [p.strip() for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
+        return "".join(f"<p>{escape_html(p)}</p>" for p in parts)
 
-    cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+def escape_html(s: str) -> str:
+    return (
+        s.replace("&", "&amp;")
+         .replace("<", "&lt;")
+         .replace(">", "&gt;")
+         .replace('"', "&quot;")
+         .replace("'", "&#39;")
+    )
 
-    # Compile groups
-    groups: List[Tuple[str, int, re.Pattern, dict]] = []
-    for gid, spec in (cfg.get("groups") or {}).items():
-        pat = re.compile(spec.get("pattern", ".*"))
-        prio = int(spec.get("priority", 1000))
-        groups.append((gid, prio, pat, spec))
-    groups.sort(key=lambda t: t[1])  # by priority (lower first)
+# -------- variables_config.yaml handling --------
 
-    # Ignore lists
-    ignore_cfg = cfg.get("ignore", {}) or {}
-    ignore_names: Set[str] = set(ignore_cfg.get("names", []) or [])
-    ignore_patterns: List[re.Pattern] = [re.compile(p) for p in (ignore_cfg.get("patterns", []) or [])]
+def _compile_ignore_patterns(patterns: List[str]) -> List[re.Pattern]:
+    """
+    Compile ignore patterns. First try as regex; on failure fallback to glob->regex.
+    This makes it robust if an editor provides a glob (e.g., *.tmp).
+    """
+    compiled: List[re.Pattern] = []
+    for raw in patterns or []:
+        p = (raw or "").strip()
+        if not p:
+            continue
+        try:
+            compiled.append(re.compile(p))
+        except re.error:
+            compiled.append(re.compile(fnmatch.translate(p)))
+    return compiled
 
-    return groups, ignore_names, ignore_patterns
+def load_variables_config() -> Tuple[Dict[str, Any], List[str], List[re.Pattern]]:
+    """
+    Returns:
+      groups_cfg: dict keyed by group_id with fields like pattern, label, notes, etc.
+      ignore_names: exact variable names to remove
+      ignore_patterns: compiled regex patterns to remove
+    """
+    if not VARIABLES_CONFIG.exists():
+        return {}, [], []
 
+    cfg = read_yaml(VARIABLES_CONFIG) or {}
+    groups_cfg = (cfg.get("groups") or {})
+    ignore_cfg = (cfg.get("ignore") or {})
+    ignore_names: List[str] = (ignore_cfg.get("names", []) or [])
+    ignore_patterns = _compile_ignore_patterns(ignore_cfg.get("patterns", []) or [])
+    return groups_cfg, ignore_names, ignore_patterns
 
-# ---------------- Normalization helpers ----------------
+# -------- Codebook/meta ingestion --------
 
-def _has_excluded_tag(tags) -> bool:
-    tags_list = [t.lower() for t in _to_list(tags)]
-    return any(t in {"internal", "identifier"} for t in tags_list)
+def discover_datasets() -> Dict[str, Dict[str, Optional[Path]]]:
+    """
+    Returns map: dataset_id -> {'codebook': Path|None, 'meta': Path|None}
+    """
+    out: Dict[str, Dict[str, Optional[Path]]] = {}
+    for yml in DATA_DIR.glob("*_register_*.yaml"):
+        ds_id = dataset_id_from_filename(yml)
+        bucket = out.setdefault(ds_id, {"codebook": None, "meta": None})
+        if yml.name.endswith("_register_codebook.yaml"):
+            bucket["codebook"] = yml
+        elif yml.name.endswith("_register_meta.yaml"):
+            bucket["meta"] = yml
+    return out
 
+def dataset_md_path_for(ds_id: str, meta_path: Optional[Path]) -> Path:
+    """
+    Dataset description markdown is stored in ./data alongside YAML,
+    named exactly like the meta YAML but with '.md' extension:
+        <dataset>_register_meta.md
+    If meta_path is None, derive the path from ds_id.
+    """
+    if meta_path:
+        return meta_path.with_suffix(".md")  # ..._register_meta.md
+    # meta missing; still support <id>_register_meta.md
+    return DATA_DIR / f"{ds_id}_register_meta.md"
 
-def _first(d: Dict[str, Any], keys: List[str], default: Any = None):
-    for k in keys:
-        if k in d and d[k] not in (None, ""):
-            return d[k]
-    return default
+def load_dataset_markdown(ds_id: str, meta_path: Optional[Path]) -> Tuple[str, Optional[Path]]:
+    """
+    Returns (markdown_text, md_path_if_exists) else ("", None)
+    """
+    md_path = dataset_md_path_for(ds_id, meta_path)
+    if md_path.exists() and md_path.is_file():
+        return md_path.read_text(encoding="utf-8"), md_path
+    return "", None
 
+def extract_var_map_from_codebook(cb_data: Any) -> Dict[str, Dict[str, Any]]:
+    """
+    Accept multiple codebook YAML shapes:
+      - {'variables': [ {name:.., ...}, ... ]}
+      - {'variables': { varname: {...}, ... }}
+      - {'var_map': { varname: {...}, ... }}
+      - Or a mapping {name: {...}} directly
+    """
+    if not cb_data:
+        return {}
 
-# ---------------- Core: normalization with grouping & ignore ----------------
+    if isinstance(cb_data, dict):
+        if "var_map" in cb_data and isinstance(cb_data["var_map"], dict):
+            return _normalize_var_map(cb_data["var_map"])
 
-def normalize_dataset(
-    register_id: str,
-    meta: Dict[str, Any],
-    codebook: Dict[str, Any],
-    groups: List[Tuple[str, int, re.Pattern, dict]],
-    ignore_names: Set[str],
-    ignore_patterns: List[re.Pattern],
-) -> Dict[str, Any]:
-    # Dataset-level
-    title = _first(meta, ["title", "dataset_title", "name"], register_id)
-    subtitle = _first(meta, ["subtitle", "sub_title", "short"], "")
-    info = _first(meta, ["info", "description", "about"], "")
+        if "variables" in cb_data:
+            vars_obj = cb_data["variables"]
+            if isinstance(vars_obj, list):
+                return {v.get("name"): _normalize_var(v) for v in vars_obj if v and v.get("name")}
+            if isinstance(vars_obj, dict):
+                return _normalize_var_map(vars_obj)
 
-    # Build raw variables list and a full map (for CSV expansion later)
-    raw_list: List[Dict[str, Any]] = []
-    var_map: Dict[str, Dict[str, Any]] = {}
-    items = list(codebook.items()) if isinstance(codebook, dict) else []
+        if all(isinstance(v, dict) for v in cb_data.values()):
+            return _normalize_var_map(cb_data)
 
-    for varname, props in items:
-        props = props or {}
+    return {}
 
-        # Exclude by tag first
-        if _has_excluded_tag(props.get("tags")):
+def _normalize_var_map(m: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    out: Dict[str, Dict[str, Any]] = {}
+    for name, v in m.items():
+        if not isinstance(v, dict):
+            continue
+        v = dict(v)
+        v.setdefault("name", name)
+        out[name] = _normalize_var(v)
+    return out
+
+def _normalize_var(v: Dict[str, Any]) -> Dict[str, Any]:
+    out = dict(v)
+
+    # Standardize name
+    if "name" not in out:
+        out["name"] = out.get("colname_silver") or out.get("colname") or None
+
+    # Normalize label
+    out["label"] = (
+        out.get("labels")
+        or out.get("label")
+        or out.get("name")
+        or ""
+    )
+
+    # Normalize type
+    out["type"] = (
+        out.get("coltypes")
+        or out.get("dtype")
+        or out.get("class")
+        or ""
+    )
+
+    # Normalize categories — always list
+    cats = out.get("categories")
+    if isinstance(cats, str):
+        cats = [cats]
+    out["categories"] = cats or []
+
+    # Other fields
+    out["tags"] = out.get("tags") or []
+    out["notes"] = out.get("notes") or ""
+    out["source"] = out.get("sources_avan") or out.get("source") or ""
+    out["is_group"] = bool(out.get("is_group", False))
+
+    return out
+
+def apply_ignore(var_map: Dict[str, Dict[str, Any]], ignore_names: List[str], ignore_patterns: List[re.Pattern]) -> Dict[str, Dict[str, Any]]:
+    out = {}
+    for name, v in var_map.items():
+        if name in ignore_names:
+            continue
+        if any(p.search(name) for p in ignore_patterns):
+            continue
+        out[name] = v
+    return out
+
+# -------- Grouping --------
+
+def build_groups_for_dataset(
+    groups_cfg: Dict[str, Any],
+    var_map: Dict[str, Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """
+    Creates synthetic group variables from config patterns.
+    Returns list of:
+      { name, label, is_group=True, members:[...], notes, source, type:"", categories:[...], tags:[], _priority:int }
+    """
+    groups: List[Dict[str, Any]] = []
+    for gid, cfg in (groups_cfg or {}).items():
+        pattern = cfg.get("pattern")
+        if not pattern:
+            continue
+        try:
+            rx = re.compile(pattern)
+        except re.error:
             continue
 
-        # Ignore list (names or patterns)
-        if varname in ignore_names:
-            continue
-        if any(p.search(varname) for p in ignore_patterns):
+        members = sorted([name for name in var_map.keys() if rx.search(name)])
+        if not members:
             continue
 
-        cats = _to_list(props.get("categories") if "categories" in props else props.get("category"))
-        tags = [t for t in _to_list(props.get("tags")) if t]
-
-        v = {
-            "name": str(varname),
-            "label": _first(props, ["label", "labels"], str(varname)),
-            "notes": props.get("notes") or "",
-            "source": _first(props, ["colname_silver", "source", "source_name"], ""),
-            "type": _first(props, ["type", "coltypes"], ""),
-            "categories": cats,
-            "tags": tags,
-            "is_group": False,
-        }
-        raw_list.append(v)
-        var_map[v["name"]] = v
-
-    # Group assignment: each var belongs to at most one group
-    assigned: Dict[str, str] = {}         # varname -> group_id
-    group_members: Dict[str, List[str]] = {}
-    group_specs: Dict[str, dict] = {gid: spec for gid, _, _, spec in groups}
-
-    for v in raw_list:
-        for gid, _prio, pat, _spec in groups:
-            if pat.search(v["name"]):
-                assigned[v["name"]] = gid
-                group_members.setdefault(gid, []).append(v["name"])
-                break  # first match wins (by priority)
-
-    # Build render rows: start with ungrouped variables
-    render_rows: List[Dict[str, Any]] = [v for v in raw_list if v["name"] not in assigned]
-
-    # Build synthetic group rows (compute categories; use configured source for group)
-    for gid, names in group_members.items():
-        spec = group_specs.get(gid, {})
-        strat = (spec.get("category_strategy") or "union").lower()
-        override = _to_list(spec.get("categories_override"))
-
-        # Aggregate categories
-        if strat == "override" and override:
-            cats = override
+        strategy = (cfg.get("category_strategy") or "union").lower()
+        cats_override = cfg.get("categories_override") or []
+        if strategy == "override":
+            cats = list(cats_override)
         else:
-            sets = [set(var_map[n].get("categories") or []) for n in names]
-            if not sets:
+            member_cats = [set((var_map[m].get("categories") or [])) for m in members]
+            if not member_cats:
                 cats = []
-            elif strat == "intersection":
-                inter = sets[0]
-                for s in sets[1:]:
-                    inter = inter & s
-                cats = sorted(inter)
-            else:  # union (default)
-                uni = set()
-                for s in sets:
-                    uni |= s
-                cats = sorted(uni)
+            elif strategy == "intersection":
+                s = set.intersection(*member_cats) if member_cats else set()
+                cats = sorted(s)
+            else:
+                s = set().union(*member_cats) if member_cats else set()
+                cats = sorted(s)
 
-        group_source = spec.get("source_variable_name_grouped", "")  # simple explicit override
-
-        render_rows.append({
+        group_var = {
             "name": gid,
-            "label": spec.get("label") or gid,
-            "notes": spec.get("notes") or "",
-            "source": group_source,     # UI shows this in the Source column
+            "label": cfg.get("label") or gid,
+            "is_group": True,
+            "members": members,
+            "notes": cfg.get("notes") or "",
+            "source": cfg.get("source_variable_name_grouped") or "",
             "type": "",
             "categories": cats,
             "tags": [],
-            "is_group": True,
-            "members": sorted(names),
-        })
+            "_priority": int(cfg.get("priority")) if "priority" in cfg else 1000
+        }
+        groups.append(group_var)
 
-    # Deterministic sort of rows: by label then by name
-    render_rows.sort(key=lambda v: (str(v.get("label", "")).casefold(), v["name"].casefold()))
+    groups.sort(key=lambda g: (g.get("_priority", 1000), g.get("label", g["name"]).lower()))
+    return groups
 
-    return {
-        "id": register_id,
-        "title": title,
-        "subtitle": subtitle,
-        "info": info,
-        "variables": render_rows,
-        "var_map": var_map,  # includes all real variables (for CSV expansion in the UI)
+# -------- Dataset assembly --------
+
+def assemble_dataset(
+    ds_id: str,
+    codebook_path: Optional[Path],
+    meta_path: Optional[Path],
+    groups_cfg: Dict[str, Any],
+    ignore_names: List[str],
+    ignore_patterns: List[re.Pattern],
+) -> Tuple[Dict[str, Any], List[Tuple[str, str]]]:
+    """
+    Returns (dataset_dict, provenance_entries)
+    provenance_entries: list[(filename, sha256)]
+    """
+    provenance: List[Tuple[str, str]] = []
+
+    # Load meta YAML (optional)
+    meta = {}
+    if meta_path and meta_path.exists():
+        meta = read_yaml(meta_path) or {}
+        provenance.append((meta_path.name, sha256_file(meta_path)))
+
+    # Load codebook YAML (optional)
+    var_map: Dict[str, Dict[str, Any]] = {}
+    if codebook_path and codebook_path.exists():
+        cb_data = read_yaml(codebook_path)
+        var_map = extract_var_map_from_codebook(cb_data)
+        provenance.append((codebook_path.name, sha256_file(codebook_path)))
+
+    # Ignore rules
+    var_map = apply_ignore(var_map, ignore_names, ignore_patterns)
+
+    # Group variables
+    groups = build_groups_for_dataset(groups_cfg, var_map)
+
+    # Variables list (groups first by priority, then real variables by label/name)
+    real_vars = list(var_map.values())
+    real_vars.sort(key=lambda v: (str(v.get("label") or v.get("name", "")).lower(), str(v.get("name", "")).lower()))
+    variables = groups + real_vars
+
+    # Prefer Markdown description in ./data/<dataset>_register_meta.md
+    info_md, md_path = load_dataset_markdown(ds_id, meta_path)
+    if md_path:
+        provenance.append((md_path.name, sha256_file(md_path)))
+
+    # If no Markdown, fall back to YAML 'info' (list of strings) if present
+    info_block: Dict[str, Any]
+    if info_md.strip():
+        info_block = {"info_md": info_md}
+    else:
+        yaml_info = meta.get("info") if isinstance(meta.get("info"), list) else []
+        info_block = {"info": yaml_info}
+
+    ds = {
+        "id": ds_id,
+        "title": meta.get("title") or readable_title_from_id(ds_id),
+        "subtitle": meta.get("subtitle") or "",
+        **info_block,
+        "var_map": var_map,
+        "variables": variables
     }
+    return ds, provenance
 
+def readable_title_from_id(ds_id: str) -> str:
+    return ds_id.replace("_", " ").replace("-", " ").title()
 
-# ---------------- Build pipeline ----------------
+# -------- Intro.md --------
 
-def collect_pairs() -> Dict[str, Dict[str, Path]]:
-    """Return mapping {register_key: {meta: Path, codebook: Path}}."""
-    codebooks: Dict[str, Path] = {}
-    metas: Dict[str, Path] = {}
-    for p in DATA_DIR.rglob("*.yaml"):
-        name = p.name
-        if "_register_codebook" in name:
-            key = name.split("_register_codebook", 1)[0]
-            codebooks[key] = p
-        elif "_register_meta" in name:
-            key = name.split("_register_meta", 1)[0]
-            metas[key] = p
+def load_intro_html() -> str:
+    if INTRO_MD.exists():
+        return md_to_html_intro(INTRO_MD.read_text(encoding="utf-8"))
+    return ""
 
-    pairs: Dict[str, Dict[str, Path]] = {}
-    for key, cb in codebooks.items():
-        meta = metas.get(key)
-        if meta:
-            pairs[key] = {"meta": meta, "codebook": cb}
-    return pairs
+# -------- Provenance --------
 
+def format_provenance(prov_per_dataset: Dict[str, List[Tuple[str, str]]]) -> str:
+    """
+    Returns a multi-line string:
+      <file> <sha256>
+      ...
+      Combined SHA-256: <digest-of-digests>
+    Combined digest is SHA-256 of the concatenated individual hex digests
+    in stable order.
+    """
+    lines: List[str] = []
+    all_hexes: List[str] = []
 
-def build():
-    pairs = collect_pairs()
-    if not pairs:
-        print("No input YAML files found in ./data. Place *meta.yaml and *codebook.yaml there.")
+    # Also include variables_config.yaml and intro.md if present
+    supplemental_files: List[Path] = []
+    if VARIABLES_CONFIG.exists():
+        supplemental_files.append(VARIABLES_CONFIG)
+    if INTRO_MD.exists():
+        supplemental_files.append(INTRO_MD)
+
+    # Per-dataset YAMLs and MDs
+    for ds_id in sorted(prov_per_dataset.keys()):
+        for fname, digest in prov_per_dataset[ds_id]:
+            lines.append(f"{fname} {digest}")
+            all_hexes.append(digest)
+
+    # Supplemental
+    for p in supplemental_files:
+        h = sha256_file(p)
+        lines.append(f"{p.name} {h}")
+        all_hexes.append(h)
+
+    combined = sha256_bytes("".join(all_hexes).encode("utf-8")) if all_hexes else ""
+    if combined:
+        lines.append(f"Combined SHA-256: {combined}")
+
+    return "\n".join(lines)
+
+# -------- Template rendering --------
+
+def render_html(datasets: List[Dict[str, Any]], intro_html: str, provenance_text: str) -> str:
+    env = Environment(
+        loader=FileSystemLoader(str(TEMPLATES_DIR)),
+        autoescape=select_autoescape(["html", "xml"])
+    )
+    tmpl = env.get_template(TEMPLATE_NAME)
+
+    data_json = json.dumps(datasets, ensure_ascii=False, separators=(",", ":"))
+
+    html = tmpl.render(
+        data_json=data_json,
+        intro_html=intro_html,
+        provenance=provenance_text
+    )
+    return html
+
+# -------- Build entrypoint --------
+
+def build() -> None:
+    DIST_DIR.mkdir(parents=True, exist_ok=True)
+
+    groups_cfg, ignore_names, ignore_patterns = load_variables_config()
+
+    discovered = discover_datasets()
+    datasets: List[Dict[str, Any]] = []
+    prov: Dict[str, List[Tuple[str, str]]] = {}
+
+    for ds_id, paths in sorted(discovered.items(), key=lambda kv: kv[0]):
+        ds, p = assemble_dataset(
+            ds_id=ds_id,
+            codebook_path=paths.get("codebook"),
+            meta_path=paths.get("meta"),
+            groups_cfg=groups_cfg,
+            ignore_names=ignore_names,
+            ignore_patterns=ignore_patterns,
+        )
+        datasets.append(ds)
+        prov[ds_id] = p
 
     intro_html = load_intro_html()
-    groups, ignore_names, ignore_patterns = load_variables_config()
+    provenance_text = format_provenance(prov)
 
-    datasets: List[Dict[str, Any]] = []
-    input_files: List[Path] = []
-    for key, paths in pairs.items():
-        meta = read_yaml(paths["meta"]) or {}
-        codebook = read_yaml(paths["codebook"]) or {}
-        ds = normalize_dataset(key, meta, codebook, groups, ignore_names, ignore_patterns)
-        datasets.append(ds)
-        input_files.extend([paths["meta"], paths["codebook"]])
+    html = render_html(datasets, intro_html, provenance_text)
+    OUTPUT_HTML.write_text(html, encoding="utf-8")
+    print(f"✓ Wrote {OUTPUT_HTML}")
 
-    # Sort datasets deterministically
-    datasets.sort(key=lambda d: (str(d.get("title", "")).casefold(), d["id"].casefold()))
-
-    # Provenance
-    uniq_inputs = sorted({p.resolve() for p in input_files})
-    h = hashlib.sha256()
-    prov_lines = []
-    for p in uniq_inputs:
-        file_hash = sha256_file(p)
-        prov_lines.append(f"{p.name}  {file_hash}")
-        h.update(p.read_bytes())
-    provenance = "\n".join(prov_lines)
-    if uniq_inputs:
-        provenance += "\n\nCombined SHA-256: " + h.hexdigest()
-
-    # Render
-    env = Environment(loader=FileSystemLoader(TEMPLATES_DIR), autoescape=select_autoescape(["html"]))
-    tpl = env.get_template("index.html.j2")
-
-    data_json = json.dumps(datasets, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    html = tpl.render(data_json=data_json, provenance=provenance, intro_html=intro_html)
-
-    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUT_PATH.write_text(html, encoding="utf-8")
-    print(f"Wrote {OUT_PATH}")
-
+# -------- CLI --------
 
 if __name__ == "__main__":
     build()
-    
+

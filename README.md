@@ -1,35 +1,228 @@
-# PREDICT — Avan data portal (static build)
+# PREDICT — Avan Data Portal (static build)
 
-This project builds a **single, self-contained HTML file** that lets users **search, browse, and select variables** per dataset and **download the selection as CSV**.
+This project builds a **single, self‑contained HTML file** that lets users  
+**search, browse, and select variables** per dataset and **download selections as CSV**.
+
+The build system is deterministic: repeated builds with the same inputs produce byte‑identical output.
+
+---
 
 ## Quick start
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python build.py
-open dist/variables_browser.html  # or double-click the file
+open dist/variables_browser.html # or double‑click the file
 ```
 
+---
+
 ## Source data
-Place your YAML files in the `data/` directory. The builder pairs files named like:
 
-- `*_register_codebook.yaml` (variables)
-- `*_register_meta.yaml`     (dataset descriptors)
+Place dataset files in the `data/` folder, using the following naming scheme.
 
-The meta YAML should provide at least: `title`, `subtitle`, `info`. The codebook YAML contains variables as top-level mapping keys.
+### Required files (must be present)
+
+| Purpose | File pattern | Required? |
+|---------|--------------|-----------|
+| Dataset metadata | `*_register_meta.yaml` | **Yes** |
+| Dataset variable codebook | `*_register_codebook.yaml` | **Yes** |
+
+### Optional files
+
+| Purpose | File pattern | Required? |
+|---------|--------------|-----------|
+| Dataset description (Markdown) | `*_register_meta.md` | No (but recommended) |
+
+### Dataset discovery rules
+
+A dataset **exists only if** the file:
+
+```
+data/<dataset>_register_meta.yaml
+```
+
+exists.  
+Given dataset ID `<dataset>`, the builder then looks for:
+
+```
+data/<dataset>_register_codebook.yaml   # required: variables
+data/<dataset>_register_meta.md         # optional: markdown description
+```
+
+Dataset descriptions are resolved in this order:
+
+1. `<dataset>_register_meta.md` (Markdown)  
+2. `info:` list inside `<dataset>_register_meta.yaml`  
+3. (none)
+
+---
+
+## Codebook format
+
+Codebook YAML files must contain a **top‑level mapping**, where each key is a variable name.
+
+Example:
+
+```yaml
+birthdate:
+  colname_silver: "birthdate"
+  labels: "Date of birth"
+  coltypes: "date"
+
+sex:
+  colname_silver: "sex"
+  labels: "Sex"
+  coltypes: "character"
+  categories:
+    - "demography"
+```
+
+Common supported fields:
+
+- `colname_silver` → displayed as “Source variable name”
+- `labels` / `label` → used as the human‑readable label
+- `coltypes` / `dtype` / `class` → displayed as “Type”
+- `categories` → list or single string
+- `tags` → string or list
+- `notes` → optional
+
+All fields are normalized automatically.
+
+---
+
+## How to add a new dataset
+
+To introduce a dataset named `foo`, add **at least two files**:
+
+### 1. Required: metadata YAML
+
+```
+data/foo_register_meta.yaml
+```
+
+Minimal example:
+
+```yaml
+title: Foo dataset
+subtitle: Demonstration dataset
+```
+
+### 2. Required: codebook YAML
+
+```
+data/foo_register_codebook.yaml
+```
+
+Minimal example:
+
+```yaml
+foo_var:
+  colname_silver: "foo_var"
+  labels: "Example variable"
+  coltypes: "character"
+```
+
+### 3. Optional: Markdown description
+
+```
+data/foo_register_meta.md
+```
+
+Example:
+
+```markdown
+# Foo dataset
+This is an example dataset added to the portal.
+```
+
+> **Important:** A dataset will **not** be discovered unless  
+> `foo_register_meta.yaml` exists.  
+> The Markdown file alone is insufficient.
+
+### After adding files
+
+```bash
+python build.py
+```
+
+You should see:
+
+```
+Assembled dataset: foo variables: 1
+```
+
+…and the dataset will appear in the UI.
+
+---
 
 ## Display rules
-- Each **variable** shows **Label** (from `label` or `labels`), **Variable name** (YAML key), **Source variable name** (`colname_silver`), and **Notes** (`notes`).
-- We **exclude** any variables whose `tags` contain `internal` or `identifier` (case-insensitive). `tags` may be a string or an array; both are supported.
-- The page is organized by dataset (`title`, `subtitle`, `info`).
+
+- Variables show:
+  - **Label**
+  - **Variable name** (YAML key)
+  - **Source variable name** (`colname_silver`)
+  - **Notes**
+- Dataset descriptions support:
+  - Markdown formatting
+  - Inline code
+  - Links
+  - Light HTML tags
+- Search matches:
+  - Label
+  - Variable name
+  - Notes
+  - Group member names
+- Groups are created via patterns in `config/variables_config.yaml`.
+
+---
 
 ## Determinism
-Builds are deterministic: datasets and variables are sorted, and no timestamps are embedded. Repeated builds with unchanged inputs yield byte-identical output.
+
+The build is deterministic:
+
+- Input files processed in sorted order  
+- No timestamps embedded  
+- Identical inputs produce identical output HTML  
+
+---
 
 ## Provenance
-The footer lists input files and a SHA-256 of their concatenated contents for traceability.
+
+The footer of the generated HTML lists:
+
+- All input YAML files  
+- Dataset Markdown files (if present)  
+- The config file  
+- The `intro.md` file  
+- A combined SHA‑256 digest  
+
+This supports traceability and reproducibility.
+
+---
 
 ## Customization
-Edit `templates/index.html.j2` to adjust layout, colors, and behaviors. Re-run `python build.py` to regenerate.
+
+To adjust UI layout, styling, or behavior:
+
+- Edit:  
+  ```
+  templates/index.html.j2
+  ```
+
+To create grouped variables or ignore variables:
+
+- Edit:  
+  ```
+  config/variables_config.yaml
+  ```
+
+Rebuild afterwards:
+
+```bash
+python build.py
+```
+
+---
