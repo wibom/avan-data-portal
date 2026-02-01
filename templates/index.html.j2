@@ -72,6 +72,17 @@
     footer details summary:hover { color: var(--text); }
     footer details[open] summary { margin-bottom: 0.5rem; }
     footer pre { background: var(--soft); border: 1px solid var(--border); border-radius: 6px; padding: 0.8rem; overflow-x: auto; }
+    @media(max-width:640px){ /* compact layout adjustments */ }
+    /* Sidebar TOC styles */
+    .app-layout { display: flex; gap: 1rem; align-items: flex-start; }
+    .content { flex: 1; }
+    .toc { width: 260px; position: sticky; top: 5.5rem; padding-left: 1rem; max-height: calc(100vh - 7rem); overflow: auto; border-left: 1px solid var(--border); }
+    .toc h3 { margin: 0 0 0.5rem 0; font-size: 0.95rem; color: var(--brand-primary); }
+    .toc ul { list-style: none; padding: 0; margin: 0; }
+    .toc li { margin: 0.25rem 0; }
+    .toc a { color: var(--muted); text-decoration: none; font-size: 0.95rem; }
+    .toc a.active { color: var(--brand-primary); font-weight: 700; }
+    @media(max-width:900px){ .toc { display: none; } }
   </style>
 </head>
 <body>
@@ -83,21 +94,30 @@
   </header>
 
   <div class="cart">
-    <div class="container">
+      <div class="container">
       <strong>Selected variables:</strong>
       <span id="cart-count" class="tag">0</span>
       <button id="download-csv" class="btn" disabled>Download CSV</button>
       <button id="clear-selection" class="btn secondary" disabled>Clear</button>
       <span class="hide-sm" style="color:var(--muted)">Selections persist during this session only.</span>
+      
     </div>
   </div>
 
-  <main id="app">
+  <main>
     {% if intro_html %}
     <section class="introduction">
       {{ intro_html | safe }}
     </section>
     {% endif %}
+
+    <div class="app-layout">
+      <div id="app" class="content"></div>
+      <aside id="sidebar-toc" class="toc" aria-label="Datasets Table of Contents">
+        <h3>Contents</h3>
+        <ul></ul>
+      </aside>
+    </div>
   </main>
 
   <script id="dataset-json" type="application/json">{{ data_json | safe }}</script>
@@ -206,7 +226,7 @@
 
       state.datasets.forEach(ds => {
         const section = document.createElement('section');
-        section.className='dataset-card'; section.dataset.datasetId = ds.id;
+        section.className='dataset-card'; section.dataset.datasetId = ds.id; section.id = ds.id;
 
         // Header with description: prefer info_md; else fall back to info[]
         const header = document.createElement('div'); header.className='dataset-header';
@@ -438,6 +458,39 @@
       render();
       document.getElementById('download-csv').addEventListener('click', downloadCSV);
       document.getElementById('clear-selection').addEventListener('click', clearSelection);
+      // Build dataset index for navigation and TOC
+      const dsIndex = state.datasets.map(d=>({id:d.id,title:d.title||d.id,subtitle:d.subtitle||''}));
+
+      function jumpToDataset(id){
+        if(!id) return;
+        const el = document.getElementById(id); if(!el) return;
+        const topBar = document.querySelector('.cart');
+        const offset = topBar ? Math.ceil(topBar.getBoundingClientRect().height) + 8 : 16;
+        const top = el.getBoundingClientRect().top + window.scrollY - offset;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
+
+      // Populate sidebar TOC and highlight on scroll
+      const toc = document.getElementById('sidebar-toc');
+      const tocList = toc.querySelector('ul');
+      dsIndex.forEach(d=>{
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = '#'+d.id; a.textContent = d.title || d.id; a.dataset.targetId = d.id;
+        a.addEventListener('click', (ev)=>{ ev.preventDefault(); jumpToDataset(d.id); });
+        li.appendChild(a); tocList.appendChild(li);
+      });
+
+      // Highlight active section using IntersectionObserver
+      try{
+        const observer = new IntersectionObserver((entries)=>{
+          entries.forEach(entry=>{
+            const id = entry.target.id; const link = toc.querySelector(`a[data-target-id="${id}"]`);
+            if(entry.isIntersecting){ toc.querySelectorAll('a').forEach(x=>x.classList.remove('active')); if(link) link.classList.add('active'); }
+          });
+        }, { root: null, rootMargin: '-20% 0px -60% 0px', threshold: 0 });
+        dsIndex.forEach(d=>{ const el = document.getElementById(d.id); if(el) observer.observe(el); });
+      }catch(e){ /* IntersectionObserver not available -> no highlighting */ }
     });
 
   })();

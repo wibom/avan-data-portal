@@ -439,9 +439,10 @@ def assemble_dataset(
     def _notes_is_long(text: Optional[str]) -> bool:
         if not text:
             return False
-        if isinstance(text, str) and text.count('\n') >= 3:
+        # Consider shorter notes as "long" to enable expand/collapse
+        if isinstance(text, str) and text.count('\n') >= 2:
             return True
-        if isinstance(text, str) and len(text) > 240:
+        if isinstance(text, str) and len(text) > 120:
             return True
         return False
 
