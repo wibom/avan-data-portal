@@ -1,12 +1,36 @@
 # Grouping rules for variables. Non-technical editors can tweak these safely.
-# Each group has:
-#  - pattern: a regular expression that matches variable names to include in the group
-#  - label:   the display label for the group row in the UI
-#  - notes:   description shown in the UI
-#  - csv_expand: set to "members" (export all real variables in CSV)
-#  - category_strategy: union|intersection|override
-#  - categories_override: only used if category_strategy=override
-#  - priority: optional integer. Lower number = higher priority when multiple patterns match
+# Each group has the following fields:
+#
+# - `pattern` (required): a regular expression matching variable names to include
+#   in the group (applies to the codebook variable "name"). Example: ^cod_contributing\\d{0,1}_?\\d{2}$
+#
+# - `label`: display label for the synthetic group row in the UI.
+#
+# - `notes`: description shown in the UI under the group row.
+#
+# - `source_variable_name_grouped`: optional string describing the original
+#   source variable name range for the grouped variables (e.g. "MORSAK1-MORSAK17").
+#   This is shown in the "Source variable name" column for the group row.
+#
+# - `csv_expand`: controls how a grouped row behaves for CSV export. Supported values:
+#     - "members" (default for convenience): selecting the group expands to the
+#       individual member variables in the CSV (one row per real variable).
+#     - "group": selecting the group exports a single row for the group itself
+#       (no expansion). Client-side code may choose the default; currently
+#       "members" preserves previous behavior.
+#
+# - `category_strategy`: determines how the group's categories are derived from
+#   member variables. Options:
+#     - `union` (default): union of member categories.
+#     - `intersection`: intersection of member categories.
+#     - `override`: use `categories_override` instead.
+#
+# - `categories_override`: used only when `category_strategy` is `override`.
+#   Provide a list of category names to assign to the group.
+#
+# - `priority`: optional integer. Lower number = higher priority when multiple
+#   patterns match. Groups are shown before regular variables according to
+#   priority and label sorting.
 
 groups:
   contributing_cod:
@@ -23,6 +47,12 @@ groups:
 ignore:
   names:
     - diagnosis_date_original
-  patterns:
+  name_patterns:
     - ".*birth.*"
+  tags: 
+    - "internal"
+    - "identifier"
+  categories: 
+    - "internal"
+    - "avan_internal"
 

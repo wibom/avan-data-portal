@@ -115,22 +115,26 @@ def _compile_ignore_patterns(patterns: List[str]) -> List[re.Pattern]:
             compiled.append(re.compile(fnmatch.translate(p)))
     return compiled
 
-def load_variables_config() -> Tuple[Dict[str, Any], List[str], List[re.Pattern]]:
+def load_variables_config() -> Tuple[Dict[str, Any], List[str], List[re.Pattern], List[str], List[str]]:
     """
     Returns:
       groups_cfg: dict keyed by group_id with fields like pattern, label, notes, etc.
       ignore_names: exact variable names to remove
-      ignore_patterns: compiled regex patterns to remove
+      ignore_name_patterns: compiled regex patterns for variable names to remove
+      ignore_tags: tags from variables that should be ignored
+      ignore_categories: category names from variables that should be ignored
     """
     if not VARIABLES_CONFIG.exists():
-        return {}, [], []
+        return {}, [], [], [], []
 
     cfg = read_yaml(VARIABLES_CONFIG) or {}
     groups_cfg = (cfg.get("groups") or {})
     ignore_cfg = (cfg.get("ignore") or {})
     ignore_names: List[str] = (ignore_cfg.get("names", []) or [])
-    ignore_patterns = _compile_ignore_patterns(ignore_cfg.get("patterns", []) or [])
-    return groups_cfg, ignore_names, ignore_patterns
+    ignore_name_patterns = _compile_ignore_patterns(ignore_cfg.get("name_patterns", []) or [])
+    ignore_tags: List[str] = (ignore_cfg.get("tags", []) or [])
+    ignore_categories: List[str] = (ignore_cfg.get("categories", []) or [])
+    return groups_cfg, ignore_names, ignore_name_patterns, ignore_tags, ignore_categories
 
 # -------- Codebook/meta ingestion --------
 
@@ -235,20 +239,40 @@ def _normalize_var(v: Dict[str, Any]) -> Dict[str, Any]:
         cats = [cats]
     out["categories"] = cats or []
 
+    # Normalize tags — always list
+    tags = out.get("tags")
+    if isinstance(tags, str):
+        tags = [tags]
+    out["tags"] = tags or []
+
     # Other fields
-    out["tags"] = out.get("tags") or []
     out["notes"] = out.get("notes") or ""
-    out["source"] = out.get("sources_avan") or out.get("source") or ""
+    # source = the source variable name (typically from colname_silver)
+    out["source"] = out.get("colname_silver") or out.get("source") or ""
     out["is_group"] = bool(out.get("is_group", False))
 
     return out
 
-def apply_ignore(var_map: Dict[str, Dict[str, Any]], ignore_names: List[str], ignore_patterns: List[re.Pattern]) -> Dict[str, Dict[str, Any]]:
+def apply_ignore(var_map: Dict[str, Dict[str, Any]], ignore_names: List[str], ignore_name_patterns: List[re.Pattern], ignore_tags: List[str] = None, ignore_categories: List[str] = None) -> Dict[str, Dict[str, Any]]:
+    if ignore_tags is None:
+        ignore_tags = []
+    if ignore_categories is None:
+        ignore_categories = []
     out = {}
     for name, v in var_map.items():
+        # Check exact name match
         if name in ignore_names:
             continue
-        if any(p.search(name) for p in ignore_patterns):
+        # Check name pattern match
+        if any(p.search(name) for p in ignore_name_patterns):
+            continue
+        # Check if variable has any tags in the ignore list
+        var_tags = v.get("tags", []) or []
+        if any(tag in ignore_tags for tag in var_tags):
+            continue
+        # Check if variable has any categories in the ignore list
+        var_categories = v.get("categories", []) or []
+        if any(cat in ignore_categories for cat in var_categories):
             continue
         out[name] = v
     return out
@@ -303,6 +327,10 @@ def build_groups_for_dataset(
             "type": "",
             "categories": cats,
             "tags": [],
+            # preserve group-level settings for client-side behavior
+            "csv_expand": cfg.get("csv_expand") or "",
+            "category_strategy": cfg.get("category_strategy") or "",
+            "categories_override": cfg.get("categories_override") or [],
             "_priority": int(cfg.get("priority")) if "priority" in cfg else 1000
         }
         groups.append(group_var)
@@ -318,7 +346,9 @@ def assemble_dataset(
     meta_path: Optional[Path],
     groups_cfg: Dict[str, Any],
     ignore_names: List[str],
-    ignore_patterns: List[re.Pattern],
+    ignore_name_patterns: List[re.Pattern],
+    ignore_tags: List[str],
+    ignore_categories: List[str],
 ) -> Tuple[Dict[str, Any], List[Tuple[str, str]]]:
     """
     Returns (dataset_dict, provenance_entries)
@@ -340,15 +370,65 @@ def assemble_dataset(
         provenance.append((codebook_path.name, sha256_file(codebook_path)))
 
     # Ignore rules
-    var_map = apply_ignore(var_map, ignore_names, ignore_patterns)
+    var_map = apply_ignore(var_map, ignore_names, ignore_name_patterns, ignore_tags, ignore_categories)
+
+    # Preserve a full copy of the var_map (after applying ignore rules).
+    # We may hide member variables from the visible `var_map` when groups are
+    # synthesized, but need the full mapping for CSV export when groups expand
+    # into individual members on the client side.
+    var_map_all = dict(var_map)
 
     # Group variables
     groups = build_groups_for_dataset(groups_cfg, var_map)
 
-    # Variables list (groups first by priority, then real variables by label/name)
-    real_vars = list(var_map.values())
-    real_vars.sort(key=lambda v: (str(v.get("label") or v.get("name", "")).lower(), str(v.get("name", "")).lower()))
-    variables = groups + real_vars
+    # If a variable is represented by a synthetic group, do not show the
+    # individual member variables in the UI. Groups are shown instead.
+    # This keeps the listing concise and avoids duplicated rows.
+    grouped_members = set()
+    for g in groups:
+        for m in g.get("members", []):
+            grouped_members.add(m)
+    for m in grouped_members:
+        if m in var_map:
+            del var_map[m]
+
+    # Variables list: place each synthetic group at the position of its first
+    # member according to the original codebook order (var_map_all). This keeps
+    # the listing intuitive: groups appear where their members would have been.
+    variables: List[Dict[str, Any]] = []
+
+    # Build mapping from member -> group (respect group priority order)
+    member_to_group: Dict[str, Dict[str, Any]] = {}
+    for g in groups:
+        for m in g.get("members", []):
+            if m not in member_to_group:
+                member_to_group[m] = g
+
+    inserted_groups = set()
+    # Iterate original ordering from var_map_all (preserves YAML mapping order)
+    for name in (list(var_map_all.keys()) if isinstance(var_map_all, dict) else []):
+        # If this name belongs to a group, insert the group at first occurrence
+        if name in member_to_group:
+            g = member_to_group[name]
+            if g["name"] not in inserted_groups:
+                variables.append(g)
+                inserted_groups.add(g["name"])
+            # skip the member (we removed members from var_map earlier)
+            continue
+
+        # Otherwise, if the variable still exists (was not grouped), append it
+        if name in var_map:
+            variables.append(var_map[name])
+
+    # Append any groups not yet inserted (no members present in var_map_all)
+    for g in groups:
+        if g["name"] not in inserted_groups:
+            variables.append(g)
+
+    # Append any remaining variables (defensive)
+    for vname, v in var_map.items():
+        if v not in variables:
+            variables.append(v)
 
     # Prefer Markdown description in ./data/<dataset>_register_meta.md
     info_md, md_path = load_dataset_markdown(ds_id, meta_path)
@@ -369,6 +449,7 @@ def assemble_dataset(
         "subtitle": meta.get("subtitle") or "",
         **info_block,
         "var_map": var_map,
+        "var_map_all": var_map_all,
         "variables": variables
     }
     return ds, provenance
@@ -445,7 +526,7 @@ def render_html(datasets: List[Dict[str, Any]], intro_html: str, provenance_text
 def build() -> None:
     DIST_DIR.mkdir(parents=True, exist_ok=True)
 
-    groups_cfg, ignore_names, ignore_patterns = load_variables_config()
+    groups_cfg, ignore_names, ignore_name_patterns, ignore_tags, ignore_categories = load_variables_config()
 
     discovered = discover_datasets()
     datasets: List[Dict[str, Any]] = []
@@ -458,7 +539,9 @@ def build() -> None:
             meta_path=paths.get("meta"),
             groups_cfg=groups_cfg,
             ignore_names=ignore_names,
-            ignore_patterns=ignore_patterns,
+            ignore_name_patterns=ignore_name_patterns,
+            ignore_tags=ignore_tags,
+            ignore_categories=ignore_categories,
         )
         datasets.append(ds)
         prov[ds_id] = p
