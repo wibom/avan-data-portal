@@ -6,9 +6,9 @@
   <title>PREDICT — Avan data portal</title>
   <style>
     :root {
-      --brand-primary: #002F6C;
-      --brand-secondary: #7A9AAE;
-      --brand-accent: #E6B800;
+      --brand-primary: #2A4765;
+      --brand-secondary: #73A790;
+      --brand-accent: #D7B17C;
       --text: #222;
       --muted: #666;
       --bg: #fff;
@@ -345,7 +345,7 @@
       tr.dataset.key = key;
 
       const labelText = v.is_group ? `${v.label} (${(v.members||[]).length} fields)` : (v.label || v.name);
-      const catsHTML = `<div class="chips">${(v.categories||[]).map(c=>`<span class="chip">${escapeHTML(c)}</span>`).join('')}</div>`;
+      const catsHTML = `<div class="chips">${(v.categories||[]).map(c=>`<span class="chip" data-cat="${escapeHTML(c)}" role="button" tabindex="0" title="Filter by ${escapeHTML(c)}">${escapeHTML(c)}</span>`).join('')}</div>`;
 
       tr.innerHTML = `
         <td><input type="checkbox" aria-label="Select ${escapeHTML(labelText)}"></td>
@@ -398,6 +398,23 @@
           notesContainer.appendChild(toggleBtn);
         }
       }
+
+        // Make category chips clickable: clicking sets the category filter for this dataset
+        try{
+          const chipEls = tr.querySelectorAll('.chip[data-cat]');
+          chipEls.forEach(ch => {
+            ch.style.cursor = 'pointer';
+            ch.addEventListener('click', (e)=>{
+              const cat = ch.dataset.cat;
+              const sectionEl = tr.closest('section');
+              if(!sectionEl) return;
+              const ddl = sectionEl.querySelector('select[data-role="filterCat"]');
+              if(ddl){ ddl.value = cat; }
+              applyFilter(sectionEl, ds);
+            });
+            ch.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); ch.click(); } });
+          });
+        }catch(err){ /* noop */ }
 
       const cb = tr.querySelector('input[type="checkbox"]');
       if (v.is_group) cb.checked = isGroupFullySelected(ds, v); else cb.checked = state.selected.has(key);
