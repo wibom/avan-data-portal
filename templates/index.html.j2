@@ -132,11 +132,27 @@
     function escapeHTML(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
     function csvEscape(v){ const s=String(v).replace(/\r?\n/g,' '); return (s.includes(',')||s.includes('"'))? '"'+s.replace(/"/g,'""')+'"': s; }
 
-    // --- Inline Markdown renderer for descriptions ---
-    // Supports: [text](url), `code`, **strong**, *em*, __strong__, _em_, ~~del~~, and auto-linking bare URLs.
-    function markdownToHtml(input){
+    // --- Block-level Markdown renderer for descriptions ---
+    // DEPRECATED: Markdown is now converted server-side. Kept for backwards compatibility.
+    function markdownToBlockHtml(input){
+      return input;  // Return as-is since it's pre-rendered
+    }
+
+    // Helper function to process list blocks with nesting support
+    // DEPRECATED: Markdown is now converted server-side.
+    function processListBlock(lines){
+      return '';  // No longer used
+    }
+
+    // --- Inline Markdown renderer for text within blocks ---
+    // Supports: [text](url), <url>, `code`, **strong**, *em*, __strong__, _em_, ~~del~~, and auto-linking bare URLs.
+    function markdownToInlineHtml(input){
       if (input == null) return '';
       let html = String(input);
+
+      // Links: <url> format (for bare URLs in angle brackets)
+      html = html.replace(/<(https?:\/\/[^\s>]+)>/g, (m, url) =>
+        `<a href="${url}" target="_blank" rel="noopener">${escapeHTML(url)}</a>`);
 
       // Links [text](url)
       html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (m, text, url) =>
@@ -157,6 +173,11 @@
         (m, pre, url) => `${pre}<a href="${url}" target="_blank" rel="noopener">${url}</a>`);
 
       return html;
+    }
+
+    // Kept for backwards compatibility with inline rendering
+    function markdownToHtml(input){
+      return markdownToInlineHtml(input);
     }
 
     function splitMarkdownParagraphs(md){
@@ -227,12 +248,11 @@
         const header = document.createElement('div'); header.className='dataset-header';
 
         let infoHTML = '';
-        if (ds.info_md && String(ds.info_md).trim()){
-          const paras = splitMarkdownParagraphs(ds.info_md);
-          infoHTML = `<div class="dataset-info">${
-            paras.map(p => `<p>${markdownToHtml(p)}</p>`).join('')
-          }</div>`;
+        if (ds.info_html && String(ds.info_html).trim()){
+          // Pre-rendered HTML from server-side markdown conversion
+          infoHTML = `<div class="dataset-info">${ds.info_html}</div>`;
         } else if (Array.isArray(ds.info) && ds.info.length){
+          // Fallback to YAML info list
           infoHTML = `<div class="dataset-info">${
             ds.info.map(p => `<p>${markdownToHtml(p)}</p>`).join('')
           }</div>`;

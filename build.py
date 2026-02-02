@@ -88,6 +88,22 @@ def md_to_html_intro(text: str) -> str:
         parts = [p.strip() for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
         return "".join(f"<p>{escape_html(p)}</p>" for p in parts)
 
+def md_to_html_dataset(text: str) -> str:
+    """
+    Convert dataset description markdown to HTML.
+    Uses the markdown library with support for lists, tables, and code blocks.
+    """
+    if not text:
+        return ""
+    try:
+        import markdown  # optional
+        # Use extensions to support various markdown features
+        return markdown.markdown(text, extensions=["extra", "sane_lists", "tables", "nl2br"])
+    except Exception:
+        # Fallback: simple conversion
+        parts = [p.strip() for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
+        return "".join(f"<p>{escape_html(p)}</p>" for p in parts)
+
 def escape_html(s: str) -> str:
     return (
         s.replace("&", "&amp;")
@@ -481,7 +497,9 @@ def assemble_dataset(
     # If no Markdown, fall back to YAML 'info' (list of strings) if present
     info_block: Dict[str, Any]
     if info_md.strip():
-        info_block = {"info_md": info_md}
+        # Convert markdown to HTML server-side
+        info_html = md_to_html_dataset(info_md)
+        info_block = {"info_html": info_html}
     else:
         yaml_info = meta.get("info") if isinstance(meta.get("info"), list) else []
         info_block = {"info": yaml_info}
