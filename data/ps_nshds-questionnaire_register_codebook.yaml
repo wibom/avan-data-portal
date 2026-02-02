@@ -1,0 +1,3856 @@
+avanid:
+  colname_silver: "avanid"
+  coltypes: "character"
+  categories: "avan_internal"
+  tags: "identifier"
+  labels: "NA"
+  sources_avan: "internal"
+  origins: "internal"
+  notes: "NA"
+birthdate:
+  colname_silver: "birthdate"
+  coltypes: "date"
+  categories: "demography"
+  tags: "birthdate"
+  labels: "Date of birth"
+  sources_avan: "internal"
+  origins: "region västerbotten"
+  notes: "Extracted from pin"
+id_nshds:
+  colname_silver: "ID_predict"
+  coltypes: "character"
+  categories: "identifier"
+  tags: "identifier"
+  labels: "Id unique for all NSHDS participants"
+  sources_avan: "brs"
+  origins: "brs"
+  notes: "ID from Robert (BRS). We believe he has created a unique number for each
+    NSHDS participant to use in the communication with Predict/Avan stewards."
+diet_questionnaire:
+  colname_silver: "kostenkat"
+  recodings:
+  - "1 ~ available"
+  - "NA ~ missing"
+  coltypes: "character"
+  categories: "diet_questionnaire"
+  tags: "diet"
+  labels: "Diet questionnaire exists"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Information about availablility of diet questionnaire data."
+  data_values:
+  - "missing ~ Diet questionnaire missing"
+  - "available ~ Diet questionnaire available"
+exclude_diet:
+  colname_silver: "exclude"
+  recodings:
+  - "0 ~ okay"
+  - "1 ~ >10% missing"
+  - "2 ~ incomplete"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories: "diet_questionnaire"
+  tags: "diet"
+  labels: "Diet data completeness"
+  sources_avan: "brs"
+  origins: "brs"
+  notes: "Information about deficiencies in diet questionnaire data."
+  notes_swe: "Indikerar bristfälligheter i kostuppgifterna. 0 = OK, alla portionsangivelser
+    finns + max 10% av livsmedelsfrekvenserna saknas, 1 = > 10%av livsmedelsfrekvenserna
+    saknas, 2 = indikerar att portionsangivelserna inte är komplett."
+  data_values:
+  - "okay ~ Portion sizes available, max 10% food frequencies missing"
+  - ">10% missing ~ > 10% of food frequencies are missing"
+  - "incomplete ~ Portion sizes are incomplete"
+  - "NA ~ Missing"
+consent_nshds_note:
+  colname_silver: "x_ad"
+  recodings:
+  - "1 ~ no commercial"
+  - "NA ~ consented"
+  coltypes: "character"
+  categories: "consent"
+  tags: "consent"
+  labels: "NSHDS consent to commercial research"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Information about the NSHDS consent, where some (n = 37) participants have
+    opted out of commercial research. At this point, it is not clear how to treat
+    data from these individuals."
+  notes_swe: "X_ad: 1 = deltagaren har sagt ja till akademisk forskning, nej till
+    kommersiell. Detta gäller 37 st och de ska troligen ingå men ngt oklart ännu."
+  data_values:
+  - "consented ~ Consented to research"
+  - "no commercial ~ Consented to academic research, declined commercial"
+questionnaire_date:
+  colname_silver: "q_date"
+  coltypes: "date"
+  categories: "questionnaire"
+  tags: "date"
+  labels: "Date of questionnaire"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Date of the questionnaire. Note: `sample_date` and `questionnaire_date`
+    may differ. BRS keeps a a variable called `diff_date` with the calculated difference.
+    The variable `background_at` informs about whether medical and anthropometric
+    variables are linked to `questionnaire_date` or `sample_date`. [Note: in this
+    data extract, `sample_date` and `diff_date` are not included]"
+  notes_swe: "Datum på enkät. Notering: Observera att sample_date och q_date kan skilja
+    sig åt, se variabeln date_diff. Medicinska och antropometriska variabler är kopplade
+    till q_date om inget anges i variabeln bakg_at_sampledate. [Tillägg: variablerna
+    sample_date och diff_date ingår inte i aktuell fil]"
+background_at:
+  colname_silver: "bakg_at_sampledate"
+  recodings:
+  - "1 ~ sample_date"
+  - "NA ~ questionnaire_date"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "sample_info"
+  tags: "NA"
+  labels: "Data linked to questionnaire or sample date"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Information about whether medical and anthropometric variables are linked
+    to `questionnaire_date` or `sample_date`."
+  notes_swe: "1 = För dessa individer är medicinska och antropometriska variabler
+    kopplade till sample_date"
+  data_values:
+  - "questionnaire_date ~ Data at questionnaire_date"
+  - "sample_date ~ Data at sample_date"
+sex:
+  colname_silver: "gender"
+  tidyaction: "harmonized"
+  recodings:
+  - "2 ~ F"
+  - "1 ~ M"
+  coltypes: "character"
+  categories: "demography"
+  tags: "sex"
+  labels: "Sex"
+  sources_avan: "brs"
+  origins: "region Västerbotten"
+  notes: "Sex"
+  notes_swe: "Kön: 1 = Man, 2 = Kvinna. [Tillägg: ingår i gruppen 'Bakgrundsvariabler']"
+  data_values:
+  - "F ~ Female"
+  - "M ~ Male"
+nshds_cohort:
+  colname_silver: "delproj"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "nshds"
+  labels: "Data from which NSHDS cohort"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Information about which of the three NSHDS cohorts data originates from."
+  notes_swe: "Delkohort, VIP = Västerbotten intervention program"
+  data_values: "VIP ~ Västerbotten Intervention Program"
+age:
+  colname_silver: "age"
+  coltypes: "number"
+  categories: "demography"
+  tags: "age"
+  labels: "Age at healthcare visit"
+  sources_avan: "rcc"
+  origins: "region västerbotten"
+  notes: "Age at healthcare visit"
+  notes_swe: "Ålder vid undersökningstillfället [Tillägg: ingår i gruppen 'Bakgrundsvariabler']"
+questionnaire_fasting:
+  colname_silver: "fasta_enk"
+  recodings:
+  - "1 ~ >=8h"
+  - "2 ~ <8h"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "sample_info"
+  tags: "fasting"
+  labels: "Fasting at time of questionnaire"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Fasting status relevent for interpreting questionnaire data on blood sugar,
+    cholesterol, and triglycerides. These data only exist in optical questionnaires.
+    `questionnaire_fasting` links with `questionnaire_date`. [Note: in the unabridged
+    dataset at BRS, this information is available also for observations linked with
+    `sample_date`, in a variable called `fasta_prov`. However, `sample_date` and `fasta_prov`
+    are not included in this data extract.]"
+  notes_swe: "Fastestatus - gäller blodsocker, kolesterol och triglycerider hämtat
+    från enkät, finns endast angivet i optiska enkäter. 1 = 8 timmar eller mer, 2
+    = mindre än 8 timmar. Notering: Om fasta_enk är missing hittas uppgift om fastestatus
+    i variabeln fasta_prov. Fasta_enk är kopplad till q_date och fasta_prov är kopplad
+    till sample_date (som kan skilja sig åt). [Tillägg: ingår i gruppen 'Bakgrundsvariabler']"
+  data_values:
+  - "<8h ~ Fasting <8 hours"
+  - ">=8h ~ Fasting >= 8 hours"
+  - "NA ~ Missing"
+questionnaire_fasting_missingkey:
+  colname_silver: "fasta_enk_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "fasting"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+height:
+  colname_silver: "langd"
+  tidyaction: "harmonized"
+  coltypes: "number"
+  categories: "anthropometry"
+  tags: "height"
+  labels: "Height (cm)"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Height in centimeters, which may be measured or self-reported. Refer to
+    `h_w_estimate` to determine the source."
+  notes_swe: "Kroppslängd i cm. Notering: Om variabeln ”l_v_uppskattad” är missing
+    är värdet mätt i anslutning till provtagning. Om ”l_v_uppskattad”=1 är värdet
+    självuppskattat. [Tillägg: ingår i gruppen 'Medicinska och antropometriska variabler',
+    För metodbeskrivning, se bilaga 1 till BRS variabelförklaring.] (I VIP-enkät:
+    1985->)"
+weight:
+  colname_silver: "vikt"
+  tidyaction: "harmonized"
+  coltypes: "number"
+  categories: "anthropometry"
+  tags: "weight"
+  labels: "Weight (kg)"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Weight in kilograms, which may be measured or self-reported. Refer to `h_w_estimate`
+    to determine the source. [Note: Data contains weight values outside the 30-200kg
+    range]"
+  notes_swe: "Vikt i kg. Notering: Om variabeln ”l_v_uppskattad” är missing är värdet
+    mätt i anslutning till provtagning. Om ”l_v_uppskattad”=1 är värdet självuppskattat.
+    [Tillägg: ingår i gruppen 'Medicinska och antropometriska variabler', För metodbeskrivning,
+    se bilaga 1 till BRS variabelförklaring.] (I VIP-enkät: 1985->)"
+h_w_estimate:
+  colname_silver: "l_v_uppskattad"
+  recodings:
+  - "1 ~ self_reported"
+  - "NA ~ measured"
+  coltypes: "character"
+  categories: "anthropometry"
+  tags:
+  - "height"
+  - "weight"
+  labels: "Height and weight measured or self reported"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Information about whether `height` and `weight` is measured or self-reported."
+  notes_swe: "1 = självuppskattad längd/vikt [Tillägg: ingår i gruppen 'Medicinska
+    och antropometriska variabler', För metodbeskrivning, se bilaga 1 till BRS variabelförklaring.]"
+  data_values: "measured ~ Measured at visit to healthcare center"
+bmi:
+  colname_silver: "bmi"
+  coltypes: "number"
+  categories: "anthropometry"
+  tags: "bmi"
+  labels: "BMI"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Body mass index, derived from `height` and `weight` regardless of whether
+    they are measured or self reported."
+  notes_swe: "Body mass index – vikt i kg/(längd i m)2 (Uträknat från langd och vikt
+    oavsett om det är självuppskattat eller mätt värde.) [Tillägg: ingår i gruppen
+    'Medicinska och antropometriska variabler', För metodbeskrivning, se bilaga 1
+    till BRS variabelförklaring.] (I VIP-enkät: 1985->)"
+waist:
+  colname_silver: "midja"
+  coltypes: "number"
+  categories: "anthropometry"
+  tags: "waist"
+  labels: "Waist (cm)"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Waist circumference in centimeters."
+  notes_swe: "Antal cm runt midjan [Tillägg: ingår i gruppen 'Medicinska och antropometriska
+    variabler', För metodbeskrivning, se bilaga 1 till BRS variabelförklaring.] (I
+    VIP-enkät: 2003->)"
+total_cholesterol:
+  colname_silver: "skol"
+  coltypes: "number"
+  categories:
+  - "biochemistry"
+  - "lipids"
+  tags:
+  - "cholesterol"
+  - "lipids"
+  labels: "Total cholesterol (mmol/l)"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Total cholesterol level in mmol/l. Analyzed using different methods over
+    time, with Reflotron until 2009-08-31 and at the Clinical Chemistry Laboratory
+    at NUS from 2009-09-01 onwards. The analysis restults before and after 2009-09-01
+    are comparable."
+  notes_swe: "Totalkolesterol mmol/l. Analys med reflotron fram till 2009-08-31, från
+    2009-09-01 analys på Laboratoriemedicin, NUS. [Tillägg: ingår i gruppen 'Medicinska
+    och antropometriska variabler', För metodbeskrivning, se bilaga 1 till BRS variabelförklaring.]
+    (I VIP-enkät: 1985->)"
+hdl_cholesterol:
+  colname_silver: "hdl"
+  coltypes: "number"
+  categories:
+  - "biochemistry"
+  - "lipids"
+  tags:
+  - "cholesterol"
+  - "lipids"
+  labels: "HDL cholesterol (mmol/l)"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "HDL cholesterol level in mmol/l. Measured for all participants from 2009-09-01
+    onwards, with some values available for earlier participants. The analysis restults
+    before and after 2009-09-01 are comparable."
+  notes_swe: "Hdl kolesterol (mmol/l) I VIP provtas Hdl för samtliga från 20090901.
+    Värden finns innan dess på enstaka individer. [Tillägg: ingår i gruppen 'Medicinska
+    och antropometriska variabler', För metodbeskrivning, se bilaga 1 till BRS variabelförklaring.]
+    (I VIP-enkät: 1985->)"
+ldl_cholesterol:
+  colname_silver: "ldl"
+  coltypes: "number"
+  categories:
+  - "biochemistry"
+  - "lipids"
+  tags:
+  - "cholesterol"
+  - "lipids"
+  labels: "LDL cholesterol (mmol/l)"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "LDL cholesterol level in mmol/l. Measured for all participants from 2009-09-01
+    onwards, with some values available for earlier participants. The analysis restults
+    before and after 2009-09-01 are comparable."
+  notes_swe: "Ldl kolesterol (mmol/l) I VIP provtas Ldl för samtliga från 20090901.
+    Värden finns innan dess på enstaka individer. [Tillägg: ingår i gruppen 'Medicinska
+    och antropometriska variabler', För metodbeskrivning, se bilaga 1 till BRS variabelförklaring.]
+    (I VIP-enkät: 1985->)"
+triglycerides:
+  colname_silver: "stg"
+  coltypes: "number"
+  categories: "biochemistry"
+  tags: "lipids"
+  labels: "Triglycerides (mmol/l)"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Triglyceride level in mmol/L. Analyzed using different methods over time,
+    with Reflotron until 2009-08-31 and at the Clinical Chemistry Laboratory from
+    2009-09-01 onwards. The analysis restults before and after 2009-09-01 are comparable."
+  notes_swe: "Triglycerider mmol/l. Analys med reflotron fram till 2009-08-31, från
+    2009-09-01 analys på Laboratoriemedicin, NUS. Serumtriglycerider vid provtagningstillfället.
+    Analysmetoderna för kolesterol och triglycerider före och efter 2009-09-01 är
+    jämförbara. [Tillägg: ingår i gruppen 'Medicinska och antropometriska variabler',
+    För metodbeskrivning, se bilaga 1 till BRS variabelförklaring.] (I VIP-enkät:
+    1986->)"
+bloodsugar_0h:
+  colname_silver: "blods0"
+  coltypes: "number"
+  categories: "biochemistry"
+  tags: "blood_sugar"
+  labels: "Blood sugar 0 hours"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Oral glucose tolerance test; blood glucose at 0 hours. Measured using capillary
+    plasma (Reflotron/Hemocue)"
+  notes_swe: "Blodsocker 0-timmars värde. Blodsocker vid provtagningstillfället. (oral
+    glukostoleranstest) Kapillärt plasmaglukos genom alla år. (Reflotron/Hemocue)
+    [Tillägg: ingår i gruppen 'Medicinska och antropometriska variabler', För metodbeskrivning,
+    se bilaga 1 till BRS variabelförklaring.] (I VIP-enkät: 1985->)"
+bloodsugar_2h:
+  colname_silver: "blods2"
+  coltypes: "number"
+  categories: "biochemistry"
+  tags: "blood_sugar"
+  labels: "Blood sugar 2 hours"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Oral glucose tolerance test; blood glucose at 2 hours. Measured using capillary
+    plasma (Reflotron/Hemocue)"
+  notes_swe: "Blodsocker 2-timmars värde. Blodsocker vid provtagningstillfället. (oral
+    glukostoleranstest) Kapillärt plasmaglukos genom alla år. (Reflotron/Hemocue)
+    [Tillägg: ingår i gruppen 'Medicinska och antropometriska variabler', För metodbeskrivning,
+    se bilaga 1 till BRS variabelförklaring.] (I VIP-enkät: 1986->)"
+bp_syst:
+  colname_silver: "sbt"
+  coltypes: "number"
+  categories:
+  - "blood_pressure"
+  - "vital_signs"
+  tags: "blood_pressure"
+  labels: "Blood pressure systolic"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Systolic blood pressure, measured laying down until 2009-08-31 and sitting
+    up from 2009-09-01 onwards. The clinical difference between laying and sitting
+    measurements is negligible. However, a dataset from VIP, where the same individuals
+    were measured in both positions, shows a significant difference: diastolic values
+    are on average 2.5 mm higher and systolic values 0.8 mm higher when measured in
+    a sitting position. It is recommended to add 2.5 mm to diastolic values when converting
+    from laying to sitting position, but no adjustment is needed for systolic values."
+  notes_swe: "Systoliskt blodtryck. Blodtryck vid provtagningstillfället. Mätt i liggande
+    ställning fram till 2009-08-31 och från 2009-09-01, mätt i sittande ställning.
+    [Tillägg: ingår i gruppen 'Medicinska och antropometriska variabler', För metodbeskrivning,
+    se bilaga 1 till BRS variabelförklaring.] (I VIP-enkät: 1985->)"
+bp_diast:
+  colname_silver: "dbt"
+  coltypes: "number"
+  categories:
+  - "blood_pressure"
+  - "vital_signs"
+  tags: "blood_pressure"
+  labels: "Blood pressure diastoic"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Diastolic blood pressure, measured laying down until 2009-08-31 and sitting
+    up from 2009-09-01 onwards. The clinical difference between laying and sitting
+    measurements is negligible. However, a dataset from VIP, where the same individuals
+    were measured in both positions, shows a significant difference: diastolic values
+    are on average 2.5 mm higher and systolic values 0.8 mm higher when measured in
+    a sitting position. It is recommended to add 2.5 mm to diastolic values when converting
+    from laying to sitting position, but no adjustment is needed for systolic values."
+  notes_swe: "Diastoliskt blodtryck Blodtryck vid provtagningstillfället. Mätt i liggande
+    ställning fram till 2009-08-31 och från 2009-09-01, mätt i sittande ställning.
+    [Tillägg: ingår i gruppen 'Medicinska och antropometriska variabler', För metodbeskrivning,
+    se bilaga 1 till BRS variabelförklaring.] (I VIP-enkät: 1985->)"
+after_090901:
+  colname_silver: "efter_090901"
+  recodings:
+  - "0 ~ sample < 2009-09-01"
+  - "1 ~ sample >= 2009-09-01"
+  coltypes: "character"
+  categories: "blood_pressure"
+  tags: "blood_pressure"
+  labels: "Sample before or after 2009-08-31"
+  sources_avan: "brs"
+  origins: "region Västerbotten"
+  notes: "This is a convenience variable indicating whether measurements were performed
+    before or after 2009-01-01. On that date, the methods used to measure certain
+    medical and anthropometric variables were changed."
+  notes_swe: "Konvertering av blodtrycksvärden, sittande till liggande, och vice versa
+    (VIP). I VIP-kohorten mättes blodtrycket i liggande position fram tom 2009-09-01
+    och efter det i sittande position. Skillnaden i blodtrycksvärde mellan mätningarna
+    gjorda i de två olika positionerna är försumbara sett ur klinisk synpunkt. Dock,
+    i ett dataset från VIP där man mätt blodtrycket på samma individer, både i sittande
+    och liggande position, fann man en signifikant skillnad både för systoliska och
+    diastoliska värden. Baserat på dessa beräkningar så var det diastoliska värdet
+    i genomsnitt 2.5 mm högre om det mätts i sittande position, och det systoliska
+    värdet 0.8 mm högre i denna position. Detta är i linje med tidigare resultat från
+    olika studier. I dessa studier så var det diastoliska värdet högre i sittande
+    position, medan man såg en svag nedgång för det systoliska värdet. Därför rekommenderar
+    vi ett tillägg på 2.5 mm vid konvertering av det diastoliska blodtrycket från
+    liggande till sittande, men ingen konvertering ska göras för det systoliska blodtrycket.
+    Ett dataset med blodtrycksvärden för 653 VIP-deltagare, där värden mätts vid både
+    liggande och sittande position, går att ansöka om, kontakta isåfall BRS."
+  data_values:
+  - "sample < 2009-09-01 ~ Sample donated before 2090-09-01"
+  - "sample >= 2009-09-01 ~ Sample donated on or after 2009-09-01"
+marital_status:
+  colname_silver: "civil"
+  recodings:
+  - "1 ~ single"
+  - "2 ~ married/cohabiting"
+  - "3 ~ divorced/separated"
+  - "4 ~ widow/widower"
+  - "21 ~ married/cohabiting"
+  - "32 ~ re-married/re-cohabiting"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "civil_status"
+  labels: "Marital status"
+  sources_avan: "brs"
+  origins: "region Västerbotten"
+  notes: "Response to the question: 'Marital status?' (Civilstånd?)"
+  notes_swe: "Civilstånd: 1 = Ogift, 2 = Gift/sambo + omgift/på nytt sambo, 3 = Frånskild/separerad,
+    4 = Änka/änkling. Tvåsiffriga tal eller större anger vilka alternativ som kombinerats.
+    (I VIP-enkät: 1985->)"
+  data_values:
+  - "single ~ Single"
+  - "married/cohabiting ~ Married/cohabiting"
+  - "divorced/separated ~ Divorced/separated"
+  - "re-married/re-cohabiting ~ Re-married/re-cohabiting"
+  - "widow/widower ~ Widow/widower"
+  - "NA ~ Missing"
+marital_status_missingkey:
+  colname_silver: "civil_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "civil_status"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+education:
+  colname_silver: "utbild"
+  recodings:
+  - "1 ~ primary school"
+  - "2 ~ secondary school"
+  - "3 ~ high school"
+  - "4 ~ university"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "education"
+  labels: "Education"
+  sources_avan: "brs"
+  origins: "region Västerbotten"
+  notes: "Response to the question: 'Education level?' (Utbildningsnivå?)"
+  notes_swe: "Utbildningsnivå: 1 = Folkskola + 9-årig grundskola (obligatorisk skola),
+    2 = Folkhögskola motsv. grundsk. + real + flickskola + yrkes-/fackskola, 3 = Folkhögskola
+    motsv. gymnasium + gymnasium/flickskola motsv. gymnasiekompetens, 4 = Akademisk
+    utbildning/högskola. (I VIP-enkät: 1985->)"
+  data_values:
+  - "primary school ~ 9-year compulsory school, or equivalent"
+  - "secondary school ~ Secondary school equivalent (e.g., vocational school)"
+  - "high school ~ Upper secondary school equivalent (e.g., high school)"
+  - "university ~ Academic education/university"
+  - "NA ~ Missing"
+education_missingkey:
+  colname_silver: "utbild_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "education"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+cohabitant:
+  colname_silver: "sambo"
+  recodings:
+  - "1 ~ only one adult"
+  - "2 ~ only children"
+  - "3 ~ adult and children"
+  - "4 ~ other"
+  - "5 ~ alone"
+  - "7 ~ not alone"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "civil_status"
+  labels: "Cohabitant"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Who do you cohabitate with?' (Vilka sammanbor
+    du med?)"
+  notes_swe: "Vilka sammanbor du med? 1 = Enbart en vuxen (make, maka, sambo), 2 =
+    Enbart barn, 3 = Vuxen och barn, 4 = Annan/andra, 5 = Bor helt ensam, 7 = Ej ensamboende.
+    (I VIP-enkät: 1985->)"
+  data_values:
+  - "only one adult ~ Only one adult (spouse/partner)"
+  - "only children ~ Only children"
+  - "adult and children ~ Adult and children"
+  - "other ~ Other/others"
+  - "alone ~ Lives alone"
+  - "not alone ~ Not living alone"
+  - "NA ~ Missing"
+cohabitant_missingkey:
+  colname_silver: "sambo_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "civil_status"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+sickleave:
+  colname_silver: "sjukskriven"
+  recodings:
+  - "1 ~ yes"
+  - "2 ~ no"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "sick_leave"
+  labels: "Sick leave"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Have you been on sick leave for more than 6 months?'.
+    (Har du varit långtidssjukskriven mer än 6 månader?)"
+  notes_swe: "Har du varit långtidssjukskriven mer än 6 månader? 1 = Ja, 2 = Nej.
+    (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Yes"
+  - "no ~ No"
+  - "NA ~ Missing"
+sickleave_missingkey:
+  colname_silver: "sjukskriven_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "sick_leave"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+employment_type_a:
+  colname_silver: "ansttyp_a"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  labels: "Employment type - Permanent"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Type of employment = Permanent employment?'.
+    (Anställningstyp = Fast anställning?)"
+  notes_swe: "Anställningstyp - Fast anställning. [Tillägg: employment_type variablerna
+    är svarsalternativ till samma fråga.] (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+employment_type_a_missingkey:
+  colname_silver: "ansttyp_a_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+employment_type_b:
+  colname_silver: "ansttyp_b"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  labels: "Employment type - Temporary/contract"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Type of employment = Temporary, substitute, or
+    preparedness work?'. (Anställningstyp = Tillfällig anställning, vikariat, beredskapsarbete?)"
+  notes_swe: "Anställningstyp - Tillfällig anställning, vikariat, beredskapsarbete.
+    [Tillägg: employment_type variablerna är svarsalternativ till samma fråga.] (I
+    VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+employment_type_b_missingkey:
+  colname_silver: "ansttyp_b_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+employment_type_c:
+  colname_silver: "ansttyp_c"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  labels: "Employment type - Homemaker"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Type of employment = Homemaker?'. (Anställningstyp
+    = Arbetar i hemmet?)"
+  notes_swe: "Anställningstyp - Arbetar i hemmet. [Tillägg: employment_type variablerna
+    är svarsalternativ till samma fråga.] (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+employment_type_c_missingkey:
+  colname_silver: "ansttyp_c_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+employment_type_d:
+  colname_silver: "ansttyp_d"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  labels: "Employment type - Unemployed"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Type of employment = Unemployed?'. (Anställningstyp
+    = Arbetslös?)"
+  notes_swe: "Anställningstyp - Arbetslös. [Tillägg: employment_type variablerna är
+    svarsalternativ till samma fråga.] (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+employment_type_d_missingkey:
+  colname_silver: "ansttyp_d_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+employment_type_e:
+  colname_silver: "ansttyp_e"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  labels: "Employment type - Student"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Type of employment = Student?'. (Anställningstyp
+    = Studerar?)"
+  notes_swe: "Anställningstyp - Studerar. [Tillägg: employment_type variablerna är
+    svarsalternativ till samma fråga.] (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+employment_type_e_missingkey:
+  colname_silver: "ansttyp_e_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+employment_type_f:
+  colname_silver: "ansttyp_f"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  labels: "Employment type - Self-employed"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Type of employment = Self-employed?'. (Anställningstyp
+    = Egen företagare?)"
+  notes_swe: "Anställningstyp - Egen företagare. [Tillägg: employment_type variablerna
+    är svarsalternativ till samma fråga.] (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+employment_type_f_missingkey:
+  colname_silver: "ansttyp_f_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+employment_type_g:
+  colname_silver: "ansttyp_g"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  labels: "Employment type - Early retirement/full disability pension"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Type of employment = Early retirement or disability
+    pension, full pension?'. (Anställningstyp = Förtids-/sjukpensionerad, helpension?)"
+  notes_swe: "Anställningstyp - Förtids-/sjukpensionerad, helpension. [Tillägg: employment_type
+    variablerna är svarsalternativ till samma fråga.] (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+employment_type_g_missingkey:
+  colname_silver: "ansttyp_g_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+employment_type_h:
+  colname_silver: "ansttyp_h"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  labels: "Employment type - Early retirement/partial disability pension"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Type of employment = Early retirement or disability
+    pension, partial pension?' (Anställningstyp = förtids-/sjukpensionerad, delpension?)"
+  notes_swe: "Anställningstyp - Förtids-/sjukpensionerad, delpension. [Tillägg: employment_type
+    variablerna är svarsalternativ till samma fråga.] (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+employment_type_h_missingkey:
+  colname_silver: "ansttyp_h_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+employment_type_i:
+  colname_silver: "ansttyp_i"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  labels: "Employment type - Early retirement/unspecified pension"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Type of employment = Early retirement or disability
+    pension, unspecified full or partial pension?'. (Anställningstyp = förtids-/sjukpensionerad,
+    ospec. hel eller delpension?)"
+  notes_swe: "Anställningstyp - Förtids-/sjukpensionerad, ospec. hel eller delpension.
+    [Tillägg: employment_type variablerna är svarsalternativ till samma fråga.] (I
+    VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+employment_type_i_missingkey:
+  colname_silver: "ansttyp_i_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "employment"
+  tags: "employment"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+country_of_origin:
+  colname_silver: "ursprungsland"
+  recodings:
+  - "1 ~ Sweden"
+  - "2 ~ other"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "country_of_origin"
+  labels: "Country of origin"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Which country are you from?'. (Vilket land kommer
+    du från?)"
+  notes_swe: "Vilket land kommer du från? 1 = Sverige 2 = Annat land, vilket? (se
+    ursprungsland_vilket). (I VIP-enkät: 1985->)"
+  data_values:
+  - "Sweden ~ Sweden"
+  - "other ~ Other"
+  - "NA ~ Missing"
+country_of_origin_missingkey:
+  colname_silver: "ursprungsland_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "country_of_origin"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+country_of_origin_specific:
+  colname_silver: "ursprungsland_vilket"
+  recodings:
+  - "Åland ~ Aland Islands"
+  - "Algeriet ~ Algeria"
+  - "Algeriet, Nali ~ Algeria/Mali"
+  - "Algeriet/Mali ~ Algeria/Mali"
+  - "Andorra ~ Andorra"
+  - "Annat land än Sverige ~ Other than Sweden"
+  - "Annat land än Sverige och Finl ~ Other than Sweden and Finland"
+  - "Argentina ~ Argentina"
+  - "Australien ~ Australia"
+  - "Belarus ~ Belarus"
+  - "Belgien ~ Belgium"
+  - "BELGIEN ~ Belgium"
+  - "Bolivia ~ Bolivia"
+  - "Bosnien ~ Bosnia"
+  - "Bosnien-hercegovina ~ Bosnia and Herzegovina"
+  - "Bosnien-herzegovina ~ Bosnia and Herzegovina"
+  - "Brasilien ~ Brazil"
+  - "Bulgarien ~ Bulgaria"
+  - "Burundi ~ Burundi"
+  - "Canada ~ Canada"
+  - "Chile ~ Chile"
+  - "Colombia ~ Colombia"
+  - "Cuba ~ Cuba"
+  - "Cypern ~ Cyprus"
+  - "Danmark ~ Denmark"
+  - "DANMARK ~ Denmark"
+  - "DDR ~ East Germany"
+  - "Ecuador ~ Ecuador"
+  - "Egypten ~ Egypt"
+  - "El salvador ~ El Salvador"
+  - "England ~ England"
+  - "ENGLAND ~ England"
+  - "England/Canada ~ England"
+  - "Eritrea ~ Eritrea"
+  - "Estland ~ Estonia"
+  - "ESTLAND ~ Estonia"
+  - "Etiopien ~ Ethiopia"
+  - "etiopien eritrea ~ Ethiopia"
+  - "Ett kinesiskt land ~ China"
+  - "Fd Jugoslavien ~ Former Yugoslavia"
+  - "Filippinerna ~ Philippines"
+  - "finland ~ Finland"
+  - "Finland ~ Finland"
+  - "FINLAND ~ Finland"
+  - "Finland (född i Sverige) ~ Sweden"
+  - "Finland 1974 ~ Finland"
+  - "Finland flytt-1970 ~ Finland"
+  - "Finland född där ~ Finland"
+  - "Finland född i ~ Finland"
+  - "Finland sv 1959 ~ Finland"
+  - "Finland-1947 ~ Finland"
+  - "Finland-58 ~ Finland"
+  - "Finland, åland ~ Aland Islands"
+  - "Förenade arabemiraten senast ~ United Arab Emirates"
+  - "FRANKIKE ~ France"
+  - "Frankrike ~ France"
+  - "Gambia ~ Gambia"
+  - "Ghana ~ Ghana"
+  - "Grekland ~ Greece"
+  - "Guatemala ~ Guatemala"
+  - "Guyana ~ Guyana"
+  - "har bott i tanzania ~ Tanzania"
+  - "Holland ~ Netherlands"
+  - "Hong kong ~ Hong Kong"
+  - "Hong kong Kina ~ Hong Kong"
+  - "Indien ~ India"
+  - "INDIEN ~ India"
+  - "Irak ~ Iraq"
+  - "Iran ~ Iran"
+  - "IRAN ~ Iran"
+  - "Iran till 1988 ~ Iran"
+  - "Iran/Kurdistan ~ Iran"
+  - "Irland ~ Ireland"
+  - "Island ~ Iceland"
+  - "Italien ~ Italy"
+  - "ITALIEN ~ Italy"
+  - "Japan ~ Japan"
+  - "Jugoslavien ~ Yugoslavia"
+  - "Kazakstan ~ Kazakhstan"
+  - "Kenya ~ Kenya"
+  - "Kina ~ China"
+  - "Korea ~ Korea"
+  - "Korea/sverige 39 år ~ Korea"
+  - "Kosovo ~ Kosovo"
+  - "Kroatien ~ Croatia"
+  - "Kurdistan ~ Kurdistan"
+  - "Kurdistan Irak ~ Kurdistan/Iraq"
+  - "Kurdistan Iran ~ Kurdistan/Iran"
+  - "Kurdistan/Iran ~ Kurdistan/Iran"
+  - "Letland ~ Latvia"
+  - "Lettland ~ Latvia"
+  - "Libanon ~ Lebanon"
+  - "Litauen ~ Lithuania"
+  - "Malaysia ~ Malaysia"
+  - "Marocko ~ Morocco"
+  - "Mauritius ~ Mauritius"
+  - "MAURITIUS ~ Mauritius"
+  - "Mauritsien ~ Mauritius"
+  - "Nederländerna ~ Netherlands"
+  - "Nicaragua ~ Nicaragua"
+  - "Norge ~ Norway"
+  - "NORGE ~ Norway"
+  - "Nya zeeland ~ New Zealand"
+  - "Österrike ~ Austria"
+  - "Östtyskland ~ East Germany"
+  - "Palestina ~ Palestine"
+  - "Panama ~ Panama"
+  - "Persien ~ Iran"
+  - "Peru ~ Peru"
+  - "Polen ~ Poland"
+  - "Portugal ~ Portugal"
+  - "Rumänien ~ Romania"
+  - "Ryssland ~ Russia"
+  - "Ryssland/USA ~ Russia/United States"
+  - "Schweiz ~ Switzerland"
+  - "SCHWEIZ ~ Switzerland"
+  - "Senegal ~ Senegal"
+  - "Serbien ~ Serbia"
+  - "Skottland ~ Scotland"
+  - "Skottland/Australien ~ Scotland"
+  - "Slovenien ~ Slovenia"
+  - "Somalia ~ Somalia"
+  - "Sovjet ~ Soviet Union"
+  - "Spanien ~ Spain"
+  - "Sri lanka ~ Sri Lanka"
+  - "Storbritannien ~ United Kingdom"
+  - "Sudan ~ Sudan"
+  - "Sydafrika ~ South Africa"
+  - "Sydafrika/född och uppvuxen ~ South Africa"
+  - "Sydkorea ~ South Korea"
+  - "Taiwan ~ Taiwan"
+  - "Thailand ~ Thailand"
+  - "Tjeckien ~ Czech Republic"
+  - "Tjeckoslovakien ~ Czechoslovakia"
+  - "Tunisien ~ Tunisia"
+  - "Turkiet ~ Turkey"
+  - "Tyskland ~ Germany"
+  - "TYSKLAND ~ Germany"
+  - "Tyskland adoption som barn ~ Germany"
+  - "Tyskland Hamburg ~ Germany"
+  - "U.S.A. ~ United States"
+  - "Uganda ~ Uganda"
+  - "Ukraina ~ Ukraine"
+  - "Ungern ~ Hungary"
+  - "uppvux skottland/eng ~ Scotland"
+  - "USA ~ United States"
+  - "Västtyskland ~ West Germany"
+  - "Venezuela ~ Venezuela"
+  - "Vietnam ~ Vietnam"
+  - "Vitryssland ~ Belarus"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "country_of_origin"
+  labels: "Country of origin - specific"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Specifies which country the person is from, other than Sweden."
+  notes_swe: "Anger vilket land personen kommer från. (I VIP-enkät: 1985->)"
+country_of_origin_specific_missingkey:
+  colname_silver: "ursprungsland_vilket_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "country_of_origin"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+health_status_year:
+  colname_silver: "halsoar"
+  recodings:
+  - "1 ~ poor"
+  - "2 ~ fairly poor"
+  - "3 ~ moderate"
+  - "4 ~ good"
+  - "5 ~ very good"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "health_status"
+  labels: "General health status last year"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How would you rate your health status over the
+    past year?'. (Hälsotillstånd senaste året?)"
+  notes_swe: "Hälsotillstånd senaste året? 1 = Dåligt, 2 = Tämligen dåligt, 3 = Någorlunda,
+    4 = Ganska gott, 5 = Mycket gott. (I VIP-enkät: 1989->)"
+  data_values:
+  - "poor ~ Poor"
+  - "fairly poor ~ Fairly poor"
+  - "moderate ~ Moderate"
+  - "good ~ Good"
+  - "very good ~ Very good"
+  - "NA ~ Missing"
+health_status_year_missingkey:
+  colname_silver: "halsoar_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "health_status"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+mi_stroke_family:
+  colname_silver: "hjartinf_foraldrar_syskon"
+  recodings:
+  - "1 ~ yes"
+  - "2 ~ no"
+  - "3 ~ dont know"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags:
+  - "myocardial"
+  - "infarction"
+  - "heart"
+  labels: "Family history - heart attack/stroke before age 60"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Have any of your parents or siblings had a heart
+    attack or stroke before the age of 60?'. (Har någon av dina föräldrar eller syskon
+    före 60-års ålder drabbats av hjärtinfarkt eller hjärnblödning/propp i hjärnan?)"
+  notes_swe: "Har någon av dina föräldrar eller syskon före 60-års ålder drabbats
+    av hjärtinfarkt eller hjärnblödning/propp i hjärnan? 1 = Ja, 2 = Nej, 3 = Vet
+    ej. (I VIP-enkät: 1989->)"
+  data_values:
+  - "yes ~ Yes"
+  - "no ~ No"
+  - "dont know ~ Dont know"
+  - "NA ~ Missing"
+mi_stroke_family_missingkey:
+  colname_silver: "hjartinf_foraldrar_syskon_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags:
+  - "myocardial"
+  - "infarction"
+  - "heart"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+diabetes_family:
+  colname_silver: "diab_foraldrar_syskon"
+  recodings:
+  - "1 ~ yes"
+  - "2 ~ no"
+  - "3 ~ dont know"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "diabetes"
+  labels: "Family history - diabetes"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Do any of your parents or siblings have diabetes?'.
+    (Förekommer diabetes hos någon av dina föräldrar och syskon?)"
+  notes_swe: "Förekommer diabetes hos någon av dina föräldrar och syskon? 1 = Ja,
+    2 = Nej, 3 = Vet ej. (I VIP-enkät: 1989->)"
+  data_values:
+  - "yes ~ Yes"
+  - "no ~ No"
+  - "dont know ~ Dont know"
+  - "NA ~ Missing"
+diabetes_family_missingkey:
+  colname_silver: "diab_foraldrar_syskon_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "diabetes"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+high_bp:
+  colname_silver: "beskbltr"
+  recodings:
+  - "1 ~ yes"
+  - "2 ~ no"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "blood_pressure"
+  tags: "blood_pressure"
+  labels: "Ever diagnosed with high blood pressure"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Have you ever been told that you have high blood
+    pressure?'. (Har du vid något tillfälle fått besked om att du har högt blodtryck?)"
+  notes_swe: "Har du vid något tillfälle fått besked om att du har högt blodtryck?
+    1 = Ja, 2 = Nej. (I VIP-enkät: 1988->)"
+  data_values:
+  - "yes ~ Yes"
+  - "no ~ No"
+  - "NA ~ Missing"
+high_bp_missingkey:
+  colname_silver: "beskbltr_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "blood_pressure"
+  tags: "blood_pressure"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+medication_c5a:
+  colname_silver: "med_C5a"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  labels: "Medication - Blood pressure"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Have you used any of the following medications
+    in the past 14 days - Blood pressure medication?'. (Blodtrycksmedicin?)"
+  notes_swe: "Har du under den senaste 14 dagars perioden använt blodtrycksmedicin?
+    1 = Ja. (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+medication_c5a_missingkey:
+  colname_silver: "med_C5a_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+medication_c5b:
+  colname_silver: "med_C5b"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  labels: "Medication - Heart/angina"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Have you used any of the following medications
+    in the past 14 days - Heart or angina medication?'. (hjärt/kärlkrampsmedicin?)"
+  notes_swe: "Har du under den senaste 14 dagars perioden använt hjärt/kärlkrampsmedicin?
+    1 = Ja. (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+medication_c5b_missingkey:
+  colname_silver: "med_C5b_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+medication_c5c:
+  colname_silver: "med_C5c"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  labels: "Medication - Tranquilizers/sleep aids"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Have you used any of the following medications
+    in the past 14 days - Tranquilizers or sleeping pills?'. (Lugnande medel eller
+    sömnmedel?)"
+  notes_swe: "Har du under den senaste 14 dagars perioden använt lugnande medel eller
+    sömnmedel? 1 = Ja. (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+medication_c5c_missingkey:
+  colname_silver: "med_C5c_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+medication_c5d:
+  colname_silver: "med_C5d"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  labels: "Medication - Ulcer/gastritis"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Have you used any of the following medications
+    in the past 14 days - Ulcer or gastritis medication?'. (Magsårs/magkatarrmedicin?)"
+  notes_swe: "Har du under den senaste 14 dagars perioden använt magsårs/magkatarrmedicin?
+    1 = Ja. (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+medication_c5d_missingkey:
+  colname_silver: "med_C5d_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+medication_c5e:
+  colname_silver: "med_C5e"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  labels: "Medication - Cholesterol-lowering"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Have you used any of the following medications
+    in the past 14 days - Lipid-lowering medication?'. (Blodfettssänkande?)"
+  notes_swe: "Har du under den senaste 14 dagars perioden använt blodfettssänkande
+    medicin? 1 = Ja. (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+medication_c5e_missingkey:
+  colname_silver: "med_C5e_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+medication_c5f:
+  colname_silver: "med_C5f"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  labels: "Medication - None of the above (c5a-c5e)"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Have you used any of the following medications
+    in the past 14 days - None of the above?'. (Nej, använder inga av ovanstående
+    mediciner?)"
+  notes_swe: "Nej, använder inga av ovanstående mediciner 1 = Ja. (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+medication_c5f_missingkey:
+  colname_silver: "med_C5f_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+medication_pain:
+  colname_silver: "smartmed"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  labels: "Medication - Pain relievers"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Have you used any of the following medications
+    in the past 14 days - Painkillers?' (Smärtstillande medel?)"
+  notes_swe: "Har du under den senaste 14 dagars perioden använt smärtstillande medel?
+    1 = Ja. (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+medication_pain_missingkey:
+  colname_silver: "smartmed_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+medication_other:
+  colname_silver: "andra_mediciner"
+  recodings:
+  - "1 ~ yes"
+  - "2 ~ no"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  labels: "Medication - Other"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Have you used any of the following medications
+    in the past 14 days - Other medications prescribed by a doctor, such as medication
+    for depression, epilepsy, penicillin, or hormones, or any other medication not
+    prescribed by a doctor, such as aspirin, vitamin or iron supplements, omega-3,
+    or other dietary supplements, herbal medicine, or other?'. (Har du under den senaste
+    14-dagarsperioden använt andra mediciner som skrivits ut av läkare som t ex medel
+    mot depression, epilepsi, penicillin eller hormoner, eller någon annan medicin
+    som ej skrivits ut av läkare som t ex magnecyl, vitamin- eller järnpreparat, omega-3,
+    eller annat kosttillskott, naturmedicin eller annat?)"
+  notes_swe: "Har du under den senaste 14 dagars perioden använt andra mediciner som
+    skrivits ut av läkare som t.ex. medel mot depression, epilepsi, penicillin eller
+    hormoner, eller någon annan medicin som ej skrivits ut av läkare som t.ex. magnecyl,
+    vitamin- eller järnpreparat, omega-3, eller annat kosttillskott, naturmedicin
+    eller annat? 1 = Ja, 2 = Nej. (I VIP-enkät: 1985->)"
+  data_values:
+  - "yes ~ Yes"
+  - "no ~ No"
+  - "NA ~ Missing"
+medication_other_missingkey:
+  colname_silver: "andra_mediciner_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "medication"
+  tags: "medication"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+diabetes:
+  colname_silver: "diabet"
+  recodings:
+  - "1 ~ yes"
+  - "2 ~ no"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "diabetes"
+  labels: "Diabetes - yes/no"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Do you have diabetes?' (Har du diabetes?)"
+  notes_swe: "Har du diabetes? 1 = Ja, 2 = Nej. (I VIP-enkät: 1986->)"
+  data_values:
+  - "yes ~ Yes"
+  - "no ~ No"
+  - "NA ~ Missing"
+diabetes_missingkey:
+  colname_silver: "diabet_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories: "questionnaire"
+  tags: "diabetes"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+rand36_pf:
+  colname_silver: "RAND36_PF"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  - "physical_activity"
+  tags:
+  - "quality_of_life"
+  - "physical_activity"
+  labels: "RAND-36 - Physical functioning"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "The score value calculated for the 'Physical Functioning (PF)' dimension
+    of RAND-36. The dataset includes the the score values calculated for each of the
+    eight key dimensions of the wildly used health survey RAND-36. RAND-36 consists
+    of 36 questions with 2, 3, 5, or 6 response options, measuring eight key dimensions
+    of health-related quality of life. Each question is scored from 0 to 100, with
+    the score evenly distributed across the response options (e.g., 0 and 100 for
+    two options, 0, 50, 100 for three options, etc.). The eight key dimensions of
+    RAND36 are: Physical Functioning (PF), Role Limitations due to Physical Health
+    (RP), Bodily Pain (BP), General Health (GH), Energy/Vitality (VT), Social Functioning
+    (SF), Role Limitations due to Emotional Problems (RE), and Mental Health (MH).
+    The eight dimensions of the RAND-36 are calculated as follows: 1) Each dimension
+    score is the average of all questions related to that dimension. 2) Unanswered
+    questions are not considered in the calculation. 3) The final score for each dimension
+    represents the average of the answered questions within that category. This scoring
+    method ensures that each dimension´s score ranges from 0 to 100, with higher scores
+    indicating better health status or functioning in that area. [Note: in the unabridged
+    dataset at BRS, the responses to each of the included 36 questions are available.]"
+  notes_swe: "RAND36_PF - Physical functioning (Fysisk funktionsförmåga). RAND-36
+    – Mäter olika aspekt av hälsa baserat på 36 hälsofrågor. Frågorna har 2, 3, 5,
+    eller 6 alternativ och mäter olika hälsokoncept t.ex. smärta, begränsningar p.g.a.
+    fysiska problem m.m. Varje fråga har fått ett värde från 0 till 100 uppdelat över
+    sina alternativ (0, 100 för två alternativ, 0, 50, 100 för tre alternativ osv).
+    Frågorna är sammanfattade i 8 delskalor (RAND36_PF, RAND36_RP, RAND36_BP, RAND36_GH,
+    RAND36_VT, RAND36_SF, RAND36_RE, RAND36_MH). De 8 skalorna av indexet beräknas
+    som ett medelvärde av alla frågor som relaterar till vardera skala av indexet.
+    Indexet tar inte hänsyn till frågor som inte besvarats, medelvärdet beräknas endast
+    av non-missing svar. Därav ska värdet representera ett genomsnittligt värde för
+    besvarade frågor inom respektive kategori. (I VIP-enkät: 2003->)"
+rand36_rp:
+  colname_silver: "RAND36_RP"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  - "physical_activity"
+  tags:
+  - "quality_of_life"
+  - "physical_activity"
+  labels: "RAND-36 - Role limitations due to physical health"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "The score value calculated for the 'Role Limitations due to Physical Health
+    (RP)' dimension of RAND-36. The dataset includes the the score values calculated
+    for each of the eight key dimensions of the wildly used health survey RAND-36.
+    RAND-36 consists of 36 questions with 2, 3, 5, or 6 response options, measuring
+    eight key dimensions of health-related quality of life. Each question is scored
+    from 0 to 100, with the score evenly distributed across the response options (e.g.,
+    0 and 100 for two options, 0, 50, 100 for three options, etc.). The eight key
+    dimensions of RAND36 are: Physical Functioning (PF), Role Limitations due to Physical
+    Health (RP), Bodily Pain (BP), General Health (GH), Energy/Vitality (VT), Social
+    Functioning (SF), Role Limitations due to Emotional Problems (RE), and Mental
+    Health (MH). The eight dimensions of the RAND-36 are calculated as follows: 1)
+    Each dimension score is the average of all questions related to that dimension.
+    2) Unanswered questions are not considered in the calculation. 3) The final score
+    for each dimension represents the average of the answered questions within that
+    category. This scoring method ensures that each dimension´s score ranges from
+    0 to 100, with higher scores indicating better health status or functioning in
+    that area. [Note: in the unabridged dataset at BRS, the responses to each of the
+    included 36 questions are available.]"
+  notes_swe: "RAND36_RP - Role limitations due to physical health (Begränsningar p.g.a.
+    fysisk hälsa). RAND-36 – Mäter olika aspekt av hälsa baserat på 36 hälsofrågor.
+    Frågorna har 2, 3, 5, eller 6 alternativ och mäter olika hälsokoncept t.ex. smärta,
+    begränsningar p.g.a. fysiska problem m.m. Varje fråga har fått ett värde från
+    0 till 100 uppdelat över sina alternativ (0, 100 för två alternativ, 0, 50, 100
+    för tre alternativ osv). Frågorna är sammanfattade i 8 delskalor (RAND36_PF, RAND36_RP,
+    RAND36_BP, RAND36_GH, RAND36_VT, RAND36_SF, RAND36_RE, RAND36_MH). De 8 skalorna
+    av indexet beräknas som ett medelvärde av alla frågor som relaterar till vardera
+    skala av indexet. Indexet tar inte hänsyn till frågor som inte besvarats, medelvärdet
+    beräknas endast av non-missing svar. Därav ska värdet representera ett genomsnittligt
+    värde för besvarade frågor inom respektive kategori. (I VIP-enkät: 2003->)"
+rand36_bp:
+  colname_silver: "RAND36_BP"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  - "physical_activity"
+  tags:
+  - "quality_of_life"
+  - "physical_activity"
+  labels: "RAND-36 - Bodily pain"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "The score value calculated for the 'Bodily Pain (BP)' dimension of RAND-36.
+    The dataset includes the the score values calculated for each of the eight key
+    dimensions of the wildly used health survey RAND-36. RAND-36 consists of 36 questions
+    with 2, 3, 5, or 6 response options, measuring eight key dimensions of health-related
+    quality of life. Each question is scored from 0 to 100, with the score evenly
+    distributed across the response options (e.g., 0 and 100 for two options, 0, 50,
+    100 for three options, etc.). The eight key dimensions of RAND36 are: Physical
+    Functioning (PF), Role Limitations due to Physical Health (RP), Bodily Pain (BP),
+    General Health (GH), Energy/Vitality (VT), Social Functioning (SF), Role Limitations
+    due to Emotional Problems (RE), and Mental Health (MH). The eight dimensions of
+    the RAND-36 are calculated as follows: 1) Each dimension score is the average
+    of all questions related to that dimension. 2) Unanswered questions are not considered
+    in the calculation. 3) The final score for each dimension represents the average
+    of the answered questions within that category. This scoring method ensures that
+    each dimension´s score ranges from 0 to 100, with higher scores indicating better
+    health status or functioning in that area. [Note: in the unabridged dataset at
+    BRS, the responses to each of the included 36 questions are available.]"
+  notes_swe: "RAND36_BP - Bodily pain (Smärta). RAND-36 – Mäter olika aspekt av hälsa
+    baserat på 36 hälsofrågor. Frågorna har 2, 3, 5, eller 6 alternativ och mäter
+    olika hälsokoncept t.ex. smärta, begränsningar p.g.a. fysiska problem m.m. Varje
+    fråga har fått ett värde från 0 till 100 uppdelat över sina alternativ (0, 100
+    för två alternativ, 0, 50, 100 för tre alternativ osv). Frågorna är sammanfattade
+    i 8 delskalor (RAND36_PF, RAND36_RP, RAND36_BP, RAND36_GH, RAND36_VT, RAND36_SF,
+    RAND36_RE, RAND36_MH). De 8 skalorna av indexet beräknas som ett medelvärde av
+    alla frågor som relaterar till vardera skala av indexet. Indexet tar inte hänsyn
+    till frågor som inte besvarats, medelvärdet beräknas endast av non-missing svar.
+    Därav ska värdet representera ett genomsnittligt värde för besvarade frågor inom
+    respektive kategori. (I VIP-enkät: 2003->)"
+rand36_gh:
+  colname_silver: "RAND36_GH"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  - "physical_activity"
+  tags:
+  - "quality_of_life"
+  - "physical_activity"
+  labels: "RAND-36 - General health"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "The score value calculated for the 'General Health (GH)' dimension of RAND-36.
+    The dataset includes the the score values calculated for each of the eight key
+    dimensions of the wildly used health survey RAND-36. RAND-36 consists of 36 questions
+    with 2, 3, 5, or 6 response options, measuring eight key dimensions of health-related
+    quality of life. Each question is scored from 0 to 100, with the score evenly
+    distributed across the response options (e.g., 0 and 100 for two options, 0, 50,
+    100 for three options, etc.). The eight key dimensions of RAND36 are: Physical
+    Functioning (PF), Role Limitations due to Physical Health (RP), Bodily Pain (BP),
+    General Health (GH), Energy/Vitality (VT), Social Functioning (SF), Role Limitations
+    due to Emotional Problems (RE), and Mental Health (MH). The eight dimensions of
+    the RAND-36 are calculated as follows: 1) Each dimension score is the average
+    of all questions related to that dimension. 2) Unanswered questions are not considered
+    in the calculation. 3) The final score for each dimension represents the average
+    of the answered questions within that category. This scoring method ensures that
+    each dimension´s score ranges from 0 to 100, with higher scores indicating better
+    health status or functioning in that area. [Note: in the unabridged dataset at
+    BRS, the responses to each of the included 36 questions are available.]"
+  notes_swe: "RAND36_GH - General health (Allmän Hälsa). RAND-36 – Mäter olika aspekt
+    av hälsa baserat på 36 hälsofrågor. Frågorna har 2, 3, 5, eller 6 alternativ och
+    mäter olika hälsokoncept t.ex. smärta, begränsningar p.g.a. fysiska problem m.m.
+    Varje fråga har fått ett värde från 0 till 100 uppdelat över sina alternativ (0,
+    100 för två alternativ, 0, 50, 100 för tre alternativ osv). Frågorna är sammanfattade
+    i 8 delskalor (RAND36_PF, RAND36_RP, RAND36_BP, RAND36_GH, RAND36_VT, RAND36_SF,
+    RAND36_RE, RAND36_MH). De 8 skalorna av indexet beräknas som ett medelvärde av
+    alla frågor som relaterar till vardera skala av indexet. Indexet tar inte hänsyn
+    till frågor som inte besvarats, medelvärdet beräknas endast av non-missing svar.
+    Därav ska värdet representera ett genomsnittligt värde för besvarade frågor inom
+    respektive kategori. (I VIP-enkät: 2003->)"
+rand36_vt:
+  colname_silver: "RAND36_VT"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  - "physical_activity"
+  tags:
+  - "quality_of_life"
+  - "physical_activity"
+  labels: "RAND-36 - Energy/Vitality"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "The score value calculated for the 'Energy/Vitality (VT)' dimension of RAND-36.
+    The dataset includes the the score values calculated for each of the eight key
+    dimensions of the wildly used health survey RAND-36. RAND-36 consists of 36 questions
+    with 2, 3, 5, or 6 response options, measuring eight key dimensions of health-related
+    quality of life. Each question is scored from 0 to 100, with the score evenly
+    distributed across the response options (e.g., 0 and 100 for two options, 0, 50,
+    100 for three options, etc.). The eight key dimensions of RAND36 are: Physical
+    Functioning (PF), Role Limitations due to Physical Health (RP), Bodily Pain (BP),
+    General Health (GH), Energy/Vitality (VT), Social Functioning (SF), Role Limitations
+    due to Emotional Problems (RE), and Mental Health (MH). The eight dimensions of
+    the RAND-36 are calculated as follows: 1) Each dimension score is the average
+    of all questions related to that dimension. 2) Unanswered questions are not considered
+    in the calculation. 3) The final score for each dimension represents the average
+    of the answered questions within that category. This scoring method ensures that
+    each dimension´s score ranges from 0 to 100, with higher scores indicating better
+    health status or functioning in that area. [Note: in the unabridged dataset at
+    BRS, the responses to each of the included 36 questions are available.]"
+  notes_swe: "RAND36_VT - Energy/Vitality (Energi/Vitalitet). RAND-36 – Mäter olika
+    aspekt av hälsa baserat på 36 hälsofrågor. Frågorna har 2, 3, 5, eller 6 alternativ
+    och mäter olika hälsokoncept t.ex. smärta, begränsningar p.g.a. fysiska problem
+    m.m. Varje fråga har fått ett värde från 0 till 100 uppdelat över sina alternativ
+    (0, 100 för två alternativ, 0, 50, 100 för tre alternativ osv). Frågorna är sammanfattade
+    i 8 delskalor (RAND36_PF, RAND36_RP, RAND36_BP, RAND36_GH, RAND36_VT, RAND36_SF,
+    RAND36_RE, RAND36_MH). De 8 skalorna av indexet beräknas som ett medelvärde av
+    alla frågor som relaterar till vardera skala av indexet. Indexet tar inte hänsyn
+    till frågor som inte besvarats, medelvärdet beräknas endast av non-missing svar.
+    Därav ska värdet representera ett genomsnittligt värde för besvarade frågor inom
+    respektive kategori. (I VIP-enkät: 2003->)"
+rand36_sf:
+  colname_silver: "RAND36_SF"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  - "physical_activity"
+  tags:
+  - "quality_of_life"
+  - "physical_activity"
+  labels: "RAND-36 - Social functioning"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "The score value calculated for the 'Social Functioning (SF)' dimension of
+    RAND-36. The dataset includes the the score values calculated for each of the
+    eight key dimensions of the wildly used health survey RAND-36. RAND-36 consists
+    of 36 questions with 2, 3, 5, or 6 response options, measuring eight key dimensions
+    of health-related quality of life. Each question is scored from 0 to 100, with
+    the score evenly distributed across the response options (e.g., 0 and 100 for
+    two options, 0, 50, 100 for three options, etc.). The eight key dimensions of
+    RAND36 are: Physical Functioning (PF), Role Limitations due to Physical Health
+    (RP), Bodily Pain (BP), General Health (GH), Energy/Vitality (VT), Social Functioning
+    (SF), Role Limitations due to Emotional Problems (RE), and Mental Health (MH).
+    The eight dimensions of the RAND-36 are calculated as follows: 1) Each dimension
+    score is the average of all questions related to that dimension. 2) Unanswered
+    questions are not considered in the calculation. 3) The final score for each dimension
+    represents the average of the answered questions within that category. This scoring
+    method ensures that each dimension´s score ranges from 0 to 100, with higher scores
+    indicating better health status or functioning in that area. [Note: in the unabridged
+    dataset at BRS, the responses to each of the included 36 questions are available.]"
+  notes_swe: "RAND36_SF – Social functioning (Social funktionsförmåga). RAND-36 –
+    Mäter olika aspekt av hälsa baserat på 36 hälsofrågor. Frågorna har 2, 3, 5, eller
+    6 alternativ och mäter olika hälsokoncept t.ex. smärta, begränsningar p.g.a. fysiska
+    problem m.m. Varje fråga har fått ett värde från 0 till 100 uppdelat över sina
+    alternativ (0, 100 för två alternativ, 0, 50, 100 för tre alternativ osv). Frågorna
+    är sammanfattade i 8 delskalor (RAND36_PF, RAND36_RP, RAND36_BP, RAND36_GH, RAND36_VT,
+    RAND36_SF, RAND36_RE, RAND36_MH). De 8 skalorna av indexet beräknas som ett medelvärde
+    av alla frågor som relaterar till vardera skala av indexet. Indexet tar inte hänsyn
+    till frågor som inte besvarats, medelvärdet beräknas endast av non-missing svar.
+    Därav ska värdet representera ett genomsnittligt värde för besvarade frågor inom
+    respektive kategori. (I VIP-enkät: 2003->)"
+rand36_re:
+  colname_silver: "RAND36_RE"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  - "physical_activity"
+  tags:
+  - "quality_of_life"
+  - "physical_activity"
+  labels: "RAND-36 - Role limitations due to emotional problems"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "The score value calculated for the 'Role Limitations due to Emotional Problems
+    (RE)' dimension of RAND-36. The dataset includes the the score values calculated
+    for each of the eight key dimensions of the wildly used health survey RAND-36.
+    RAND-36 consists of 36 questions with 2, 3, 5, or 6 response options, measuring
+    eight key dimensions of health-related quality of life. Each question is scored
+    from 0 to 100, with the score evenly distributed across the response options (e.g.,
+    0 and 100 for two options, 0, 50, 100 for three options, etc.). The eight key
+    dimensions of RAND36 are: Physical Functioning (PF), Role Limitations due to Physical
+    Health (RP), Bodily Pain (BP), General Health (GH), Energy/Vitality (VT), Social
+    Functioning (SF), Role Limitations due to Emotional Problems (RE), and Mental
+    Health (MH). The eight dimensions of the RAND-36 are calculated as follows: 1)
+    Each dimension score is the average of all questions related to that dimension.
+    2) Unanswered questions are not considered in the calculation. 3) The final score
+    for each dimension represents the average of the answered questions within that
+    category. This scoring method ensures that each dimension´s score ranges from
+    0 to 100, with higher scores indicating better health status or functioning in
+    that area. [Note: in the unabridged dataset at BRS, the responses to each of the
+    included 36 questions are available.]"
+  notes_swe: "RAND36_RE - Role limitations due to emotional problems (Begränsningar
+    på grund av emotionella problem) . RAND-36 – Mäter olika aspekt av hälsa baserat
+    på 36 hälsofrågor. Frågorna har 2, 3, 5, eller 6 alternativ och mäter olika hälsokoncept
+    t.ex. smärta, begränsningar p.g.a. fysiska problem m.m. Varje fråga har fått ett
+    värde från 0 till 100 uppdelat över sina alternativ (0, 100 för två alternativ,
+    0, 50, 100 för tre alternativ osv). Frågorna är sammanfattade i 8 delskalor (RAND36_PF,
+    RAND36_RP, RAND36_BP, RAND36_GH, RAND36_VT, RAND36_SF, RAND36_RE, RAND36_MH).
+    De 8 skalorna av indexet beräknas som ett medelvärde av alla frågor som relaterar
+    till vardera skala av indexet. Indexet tar inte hänsyn till frågor som inte besvarats,
+    medelvärdet beräknas endast av non-missing svar. Därav ska värdet representera
+    ett genomsnittligt värde för besvarade frågor inom respektive kategori. (I VIP-enkät:
+    2003->)"
+rand36_mh:
+  colname_silver: "RAND36_MH"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  - "physical_activity"
+  tags:
+  - "quality_of_life"
+  - "physical_activity"
+  labels: "RAND-36 - Mental health"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "The score value calculated for the 'Mental Health (MH)' dimension of RAND-36.
+    The dataset includes the the score values calculated for each of the eight key
+    dimensions of the wildly used health survey RAND-36. RAND-36 consists of 36 questions
+    with 2, 3, 5, or 6 response options, measuring eight key dimensions of health-related
+    quality of life. Each question is scored from 0 to 100, with the score evenly
+    distributed across the response options (e.g., 0 and 100 for two options, 0, 50,
+    100 for three options, etc.). The eight key dimensions of RAND36 are: Physical
+    Functioning (PF), Role Limitations due to Physical Health (RP), Bodily Pain (BP),
+    General Health (GH), Energy/Vitality (VT), Social Functioning (SF), Role Limitations
+    due to Emotional Problems (RE), and Mental Health (MH). The eight dimensions of
+    the RAND-36 are calculated as follows: 1) Each dimension score is the average
+    of all questions related to that dimension. 2) Unanswered questions are not considered
+    in the calculation. 3) The final score for each dimension represents the average
+    of the answered questions within that category. This scoring method ensures that
+    each dimension´s score ranges from 0 to 100, with higher scores indicating better
+    health status or functioning in that area. [Note: in the unabridged dataset at
+    BRS, the responses to each of the included 36 questions are available.]"
+  notes_swe: "RAND36_MH – Mental health (Mental hälsa). RAND-36 – Mäter olika aspekt
+    av hälsa baserat på 36 hälsofrågor. Frågorna har 2, 3, 5, eller 6 alternativ och
+    mäter olika hälsokoncept t.ex. smärta, begränsningar p.g.a. fysiska problem m.m.
+    Varje fråga har fått ett värde från 0 till 100 uppdelat över sina alternativ (0,
+    100 för två alternativ, 0, 50, 100 för tre alternativ osv). Frågorna är sammanfattade
+    i 8 delskalor (RAND36_PF, RAND36_RP, RAND36_BP, RAND36_GH, RAND36_VT, RAND36_SF,
+    RAND36_RE, RAND36_MH). De 8 skalorna av indexet beräknas som ett medelvärde av
+    alla frågor som relaterar till vardera skala av indexet. Indexet tar inte hänsyn
+    till frågor som inte besvarats, medelvärdet beräknas endast av non-missing svar.
+    Därav ska värdet representera ett genomsnittligt värde för besvarade frågor inom
+    respektive kategori. (I VIP-enkät: 2003->)"
+qol_d1:
+  colname_silver: "livskvalitet_d1"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Home and family situation"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How satisfied are you with your situation - Home
+    and family?' (Hem och familjesituation?)'. Rated on a scale from 1 (Very dissatisfied/Mycket
+    dålig) to 7 (Very satisfied/Alldeles utmärkt)."
+  notes_swe: "livskvalitet_d1 = Hem och familjesituation. Markera hur tillfredsställd
+    du är med din situation i olika avseenden Mycket dålig=1 ... alldeles utmärkt=7.
+    (I VIP-enkät: 1996->)"
+qol_d1_missingkey:
+  colname_silver: "livskvalitet_d1_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d2:
+  colname_silver: "livskvalitet_d2"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Housing"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How satisfied are you with your situation - Housing?'
+    (Bostad?)'. Rated on a scale from 1 (Very dissatisfied/Mycket dålig) to 7 (Very
+    satisfied/Alldeles utmärkt)."
+  notes_swe: "livskvalitet_d2 = Bostad. Markera hur tillfredsställd du är med din
+    situation i olika avseenden Mycket dålig=1 ... alldeles utmärkt=7. (I VIP-enkät:
+    1996->)"
+qol_d2_missingkey:
+  colname_silver: "livskvalitet_d2_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d3:
+  colname_silver: "livskvalitet_d3"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Work situation"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How satisfied are you with your situation - Work?'
+    (Arbetssituation?)'. Rated on a scale from 1 (Very dissatisfied/Mycket dålig)
+    to 7 (Very satisfied/Alldeles utmärkt)."
+  notes_swe: "livskvalitet_d3 = Arbetssituation. Markera hur tillfredsställd du är
+    med din situation i olika avseenden Mycket dålig=1 ... alldeles utmärkt=7. (I
+    VIP-enkät: 1996->)"
+qol_d3_missingkey:
+  colname_silver: "livskvalitet_d3_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d4:
+  colname_silver: "livskvalitet_d4"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Finances"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How satisfied are you with your situation - Financial
+    situation?' (Ekonomi?)'. Rated on a scale from 1 (Very dissatisfied/Mycket dålig)
+    to 7 (Very satisfied/Alldeles utmärkt)."
+  notes_swe: "livskvalitet_d4 = Ekonomi. Markera hur tillfredsställd du är med din
+    situation i olika avseenden Mycket dålig=1 ... alldeles utmärkt=7. (I VIP-enkät:
+    1996->)"
+qol_d4_missingkey:
+  colname_silver: "livskvalitet_d4_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d5:
+  colname_silver: "livskvalitet_d5"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Leisure"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How satisfied are you with your situation - Leisure
+    time?' (Fritid?)'. Rated on a scale from 1 (Very dissatisfied/Mycket dålig) to
+    7 (Very satisfied/Alldeles utmärkt)."
+  notes_swe: "livskvalitet_d5 = Fritid. Markera hur tillfredsställd du är med din
+    situation i olika avseenden Mycket dålig=1 ... alldeles utmärkt=7. (I VIP-enkät:
+    1996->)"
+qol_d5_missingkey:
+  colname_silver: "livskvalitet_d5_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d6:
+  colname_silver: "livskvalitet_d6"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Hearing"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How satisfied are you with your situation - Hearing?'
+    (Hörseln?)'. One can experience changes within oneself over the years. Try to
+    indicate how you feel now. Rated on a scale from 1 (Very dissatisfied/Mycket dålig)
+    to 7 (Very satisfied/Alldeles utmärkt)."
+  notes_swe: "livskvalitet_d6 = Hörseln. Man kan uppleva en del förändringar inom
+    sig själv under årens lopp, försök att nedan markera hur du känner dig nu. Mycket
+    dålig=1 ... alldeles utmärkt=7. (I VIP-enkät: 1996->)"
+qol_d6_missingkey:
+  colname_silver: "livskvalitet_d6_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d7:
+  colname_silver: "livskvalitet_d7"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Vision"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How satisfied are you with your situation - Vision?'
+    (Synen?)'. One can experience changes within oneself over the years. Try to indicate
+    how you feel now. Rated on a scale from 1 (Very dissatisfied/Mycket dålig) to
+    7 (Very satisfied/Alldeles utmärkt)."
+  notes_swe: "livskvalitet_d7 = Synen. Man kan uppleva en del förändringar inom sig
+    själv under årens lopp, försök att nedan markera hur du känner dig nu. Mycket
+    dålig=1 ... alldeles utmärkt=7. (I VIP-enkät: 1996->)"
+qol_d7_missingkey:
+  colname_silver: "livskvalitet_d7_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d8:
+  colname_silver: "livskvalitet_d8"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Memory"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How satisfied are you with your situation - Memory?'
+    (Minnet?)'. One can experience changes within oneself over the years. Try to indicate
+    how you feel now. Rated on a scale from 1 (Very dissatisfied/Mycket dålig) to
+    7 (Very satisfied/Alldeles utmärkt)."
+  notes_swe: "livskvalitet_d8 = Minnet. Man kan uppleva en del förändringar inom sig
+    själv under årens lopp, försök att nedan markera hur du känner dig nu. Mycket
+    dålig=1 ... alldeles utmärkt=7. (I VIP-enkät: 1996->)"
+qol_d8_missingkey:
+  colname_silver: "livskvalitet_d8_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d9:
+  colname_silver: "livskvalitet_d9"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Physical fitness"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How satisfied are you with your situation - Physical
+    fitness?' (Konditionen?)'. One can experience changes within oneself over the
+    years. Try to indicate how you feel now. Rated on a scale from 1 (Very dissatisfied/Mycket
+    dålig) to 7 (Very satisfied/Alldeles utmärkt)."
+  notes_swe: "livskvalitet_d9 = Konditionen. Man kan uppleva en del förändringar inom
+    sig själv under årens lopp, försök att nedan markera hur du känner dig nu. Mycket
+    dålig=1 ... alldeles utmärkt=7. (I VIP-enkät: 1996->)"
+qol_d9_missingkey:
+  colname_silver: "livskvalitet_d9_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d10:
+  colname_silver: "livskvalitet_d10"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Appetite"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How satisfied are you with your situation - Appetite?'
+    (Aptiten?)'. One can experience changes within oneself over the years. Try to
+    indicate how you feel now. Rated on a scale from 1 (Very dissatisfied/Mycket dålig)
+    to 7 (Very satisfied/Alldeles utmärkt)."
+  notes_swe: "livskvalitet_d10 = Aptiten. Man kan uppleva en del förändringar inom
+    sig själv under årens lopp, försök att nedan markera hur du känner dig nu. Mycket
+    dålig=1 ... alldeles utmärkt=7. (I VIP-enkät: 1996->)"
+qol_d10_missingkey:
+  colname_silver: "livskvalitet_d10_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d11:
+  colname_silver: "livskvalitet_d11"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Mood"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How satisfied are you with your situation - Mood?'
+    (Humöret?)'. One can experience changes within oneself over the years. Try to
+    indicate how you feel now. Rated on a scale from 1 (Very dissatisfied/Mycket dålig)
+    to 7 (Very satisfied/Alldeles utmärkt)."
+  notes_swe: "livskvalitet_d11 = Humöret. Man kan uppleva en del förändringar inom
+    sig själv under årens lopp, försök att nedan markera hur du känner dig nu. Mycket
+    dålig=1 ... alldeles utmärkt=7. (I VIP-enkät: 1996->)"
+qol_d11_missingkey:
+  colname_silver: "livskvalitet_d11_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d12:
+  colname_silver: "livskvalitet_d12"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Energy"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How satisfied are you with your situation - Energy?'
+    (Energin?)'. One can experience changes within oneself over the years. Try to
+    indicate how you feel now. Rated on a scale from 1 (Very dissatisfied/Mycket dålig)
+    to 7 (Very satisfied/Alldeles utmärkt)."
+  notes_swe: "livskvalitet_d12 = Energin. Man kan uppleva en del förändringar inom
+    sig själv under årens lopp, försök att nedan markera hur du känner dig nu. Mycket
+    dålig=1 ... alldeles utmärkt=7. (I VIP-enkät: 1996->)"
+qol_d12_missingkey:
+  colname_silver: "livskvalitet_d12_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d13:
+  colname_silver: "livskvalitet_d13"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Patience"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How satisfied are you with your situation - Patience?'
+    (Tålamodet?)'. One can experience changes within oneself over the years. Try to
+    indicate how you feel now. Rated on a scale from 1 (Very dissatisfied/Mycket dålig)
+    to 7 (Very satisfied/Alldeles utmärkt)."
+  notes_swe: "livskvalitet_d13 = Tålamodet. Man kan uppleva en del förändringar inom
+    sig själv under årens lopp, försök att nedan markera hur du känner dig nu. Mycket
+    dålig=1 ... alldeles utmärkt=7. (I VIP-enkät: 1996->)"
+qol_d13_missingkey:
+  colname_silver: "livskvalitet_d13_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d14:
+  colname_silver: "livskvalitet_d14"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Self-confidence"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How satisfied are you with your situation - Self-confidence?'
+    (Självförtroendet?)'. One can experience changes within oneself over the years.
+    Try to indicate how you feel now. Rated on a scale from 1 (Very dissatisfied/Mycket
+    dålig) to 7 (Very satisfied/Alldeles utmärkt)."
+  notes_swe: "livskvalitet_d14 = Självförtroendet. Man kan uppleva en del förändringar
+    inom sig själv under årens lopp, försök att nedan markera hur du känner dig nu.
+    Mycket dålig=1 ... alldeles utmärkt=7. (I VIP-enkät: 1996->)"
+qol_d14_missingkey:
+  colname_silver: "livskvalitet_d14_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d15:
+  colname_silver: "livskvalitet_d15"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Sleep"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How satisfied are you with your situation - Sleep?'
+    (Sömnen?)'. One can experience changes within oneself over the years. Try to indicate
+    how you feel now. Rated on a scale from 1 (Very dissatisfied/Mycket dålig) to
+    7 (Very satisfied/Alldeles utmärkt)."
+  notes_swe: "livskvalitet_d15 = Sömnen. Man kan uppleva en del förändringar inom
+    sig själv under årens lopp, försök att nedan markera hur du känner dig nu. Mycket
+    dålig=1 ... alldeles utmärkt=7. (I VIP-enkät: 1996->)"
+qol_d15_missingkey:
+  colname_silver: "livskvalitet_d15_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d16:
+  colname_silver: "livskvalitet_d16"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Feeling valued outisde home"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Do you feel important and valued - Outside of
+    home?' (Utanför hemmet?)'. Rated on a scale from 1 (Not at all/Inte alls) to 7
+    (Very/Mycket)."
+  notes_swe: "livskvalitet_d16 = utanför hemmet? Känner du dig betydelsefull och uppskattad.
+    Inte alls=1 ... mycket=7 (I VIP-enkät: 1996->)"
+qol_d16_missingkey:
+  colname_silver: "livskvalitet_d16_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+qol_d17:
+  colname_silver: "livskvalitet_d17"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  labels: "Quality of life - Feeling valued at home"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Do you feel important and valued - At home?'
+    (I hemmet?)'. Rated on a scale from 1 (Not at all/Inte alls) to 7 (Very/Mycket)."
+  notes_swe: "livskvalitet_d17 = i hemmet? Känner du dig betydelsefull och uppskattad.
+    Inte alls=1 ... mycket=7 (I VIP-enkät: 1996->)"
+qol_d17_missingkey:
+  colname_silver: "livskvalitet_d17_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "quality_of_life"
+  tags: "quality_of_life"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+issi_avsi:
+  colname_silver: "ISSI_avsi"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "social"
+  tags:
+  - "social"
+  - "interaction"
+  labels: "Availability of Social Interaction (AVSI)"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Score for the 'Availability of Social Interaction (AVSI)' dimension of the
+    Interview Schedule for Social Interaction (ISSI). This dimension measures the
+    size and functionality of one's social network. The summary AVSI-score value ranges
+    from 0 - 14. It is based on 13 questions, each assigned a value between 0 and
+    2. [Note: in the unabridged dataset at BRS, the responses to each of the included
+    13 questions are available.]"
+  notes_swe: "Interview Schedule for Social Interaction (ISSI) består av en serie
+    frågor om ens sociala nätverk som räknas samman till skalorna ISSI_AVSI – AVailability
+    of Social Interaction (Sociala nätverkets storlek och funktionalitet), och ISSI_AVAT
+    - AVailability of ATtachment (Tillgång till närhet och emotionellt stöd). Indexet
+    baserar sig på 13 frågor, dessa är sockont-sochelp [Tillägg: dessa variabler beskrivs
+    i BRS variabelförklaring]. Dessa har tilldelats en score från 0-2 utifrån hur
+    många svarsalternativ en fråga har. Frågor relaterade till AVSI och AVAT summeras
+    till en score som kan ha värden mellan 0-14 för AVSI score respektive 0-12 för
+    AVAT score. (I VIP-enkät: 1985->)"
+issi_avat:
+  colname_silver: "ISSI_avat"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "social"
+  tags:
+  - "social"
+  - "interaction"
+  labels: "Availability of Attachment (AVAT)"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Score for the 'Availability of Attachment (AVAT)' dimension of the Interview
+    Schedule for Social Interaction (ISSI). This dimension measures the availability
+    of close and emotionally supportive relationships. The summary AVAT-score value
+    ranges from 0 - 12. It is based on 13 questions, each assigned a value between
+    0 and 2. [Note: in the unabridged dataset at BRS, the responses to each of the
+    included 13 questions are available.]"
+  notes_swe: "Interview Schedule for Social Interaction (ISSI) består av en serie
+    frågor om ens sociala nätverk som räknas samman till skalorna ISSI_AVSI – AVailability
+    of Social Interaction (Sociala nätverkets storlek och funktionalitet), och ISSI_AVAT
+    - AVailability of ATtachment (Tillgång till närhet och emotionellt stöd). Indexet
+    baserar sig på 13 frågor, dessa är sockont-sochelp [Tillägg: dessa variabler beskrivs
+    i BRS variabelförklaring]. Dessa har tilldelats en score från 0-2 utifrån hur
+    många svarsalternativ en fråga har. Frågor relaterade till AVSI och AVAT summeras
+    till en score som kan ha värden mellan 0-14 för AVSI score respektive 0-12 för
+    AVAT score. (I VIP-enkät: 1985->)"
+g1_a:
+  colname_silver: "g1_a"
+  recodings:
+  - "1 ~ car"
+  - "2 ~ bus"
+  - "3 ~ walk"
+  - "4 ~ bike"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Physical activity - Commute spring"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How do you usually travel to and from work -
+    During the spring?'"
+  notes_swe: "g1_a = Vår. Markera i tabellen nedan hur du oftast färdas till och från
+    arbetet för varje årstid. 1 = Bil, 2 = Buss, 3 = Promenerar, 4 = Cyklar. (I VIP-enkät:
+    1989->)"
+  data_values:
+  - "car ~ Car"
+  - "bus ~ Bus"
+  - "bike ~ Bicycle"
+  - "walk ~ Walk"
+  - "NA ~ Missing"
+g1_a_missingkey:
+  colname_silver: "g1_a_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+g1_b:
+  colname_silver: "g1_b"
+  recodings:
+  - "1 ~ car"
+  - "2 ~ bus"
+  - "3 ~ walk"
+  - "4 ~ bike"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Physical activity - Commute summer"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How do you usually travel to and from work -
+    During the summer?'"
+  notes_swe: "g1_b = Sommar. Markera i tabellen nedan hur du oftast färdas till och
+    från arbetet för varje årstid. 1 = Bil, 2 = Buss, 3 = Promenerar, 4 = Cyklar.
+    (I VIP-enkät: 1989->)"
+  data_values:
+  - "car ~ Car"
+  - "bus ~ Bus"
+  - "bike ~ Bicycle"
+  - "walk ~ Walk"
+  - "NA ~ Missing"
+g1_b_missingkey:
+  colname_silver: "g1_b_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+g1_c:
+  colname_silver: "g1_c"
+  recodings:
+  - "1 ~ car"
+  - "2 ~ bus"
+  - "3 ~ walk"
+  - "4 ~ bike"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Physical activity - Commute autumn"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How do you usually travel to and from work -
+    During the autumn?'"
+  notes_swe: "g1_c = Höst. Markera i tabellen nedan hur du oftast färdas till och
+    från arbetet för varje årstid. 1 = Bil, 2 = Buss, 3 = Promenerar, 4 = Cyklar.
+    (I VIP-enkät: 1989->)"
+  data_values:
+  - "car ~ Car"
+  - "bus ~ Bus"
+  - "bike ~ Bicycle"
+  - "walk ~ Walk"
+  - "NA ~ Missing"
+g1_c_missingkey:
+  colname_silver: "g1_c_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+g1_d:
+  colname_silver: "g1_d"
+  recodings:
+  - "1 ~ car"
+  - "2 ~ bus"
+  - "3 ~ walk"
+  - "4 ~ bike"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Physical activity - Commute winter"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How do you usually travel to and from work -
+    During the winter?'"
+  notes_swe: "g1_d = Vinter. Markera i tabellen nedan hur du oftast färdas till och
+    från arbetet för varje årstid. 1 = Bil, 2 = Buss, 3 = Promenerar, 4 = Cyklar.
+    (I VIP-enkät: 1989->)"
+  data_values:
+  - "car ~ Car"
+  - "bus ~ Bus"
+  - "bike ~ Bicycle"
+  - "walk ~ Walk"
+  - "NA ~ Missing"
+g1_d_missingkey:
+  colname_silver: "g1_d_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+distance_work:
+  colname_silver: "antal_km"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Distance to work"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How many kilometers is your one-way commute to
+    work?'"
+  notes_swe: "Antal km till arbetet (enkel väg). (I VIP-enkät: 1989->)"
+distance_work_missingkey:
+  colname_silver: "antal_km_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+g2_a:
+  colname_silver: "g2_a"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Physical activity, Occupation - Sedentary or standing"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Best description of physical activity at work
+    = Sedentary or standing?'"
+  notes_swe: "g2_a = Stillasittande eller stående. Markera det alternativ som bäst
+    beskriver ditt arbete. [Tillägg: variablerna g2_a - g2_e är svarsalternativ till
+    samma fråga.] (I VIP-enkät: 1989->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+g2_a_missingkey:
+  colname_silver: "g2_a_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+g2_b:
+  colname_silver: "g2_b"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Physical activity, Occupation - Light, partially active"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Best description of physical activity at work
+    = Light but partially active?'"
+  notes_swe: "g2_b = Lätt men delvis rörligt . Markera det alternativ som bäst beskriver
+    ditt arbete. [Tillägg: variablerna g2_a - g2_e är svarsalternativ till samma fråga.]
+    (I VIP-enkät: 1989->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+g2_b_missingkey:
+  colname_silver: "g2_b_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+g2_c:
+  colname_silver: "g2_c"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Physical activity, Occupation - Light and active"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Best description of physical activity at work
+    = Light but partially active?'"
+  notes_swe: "g2_c = Lätt och rörligt. Markera det alternativ som bäst beskriver ditt
+    arbete. [Tillägg: variablerna g2_a - g2_e är svarsalternativ till samma fråga.]
+    (I VIP-enkät: 1989->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+g2_c_missingkey:
+  colname_silver: "g2_c_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+g2_d:
+  colname_silver: "g2_d"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Physical activity, Occupation - Occasionally physically demanding"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Best description of physical activity at work
+    = Light and active?'"
+  notes_swe: "g2_d = Ibland fysiskt tungt. Markera det alternativ som bäst beskriver
+    ditt arbete. [Tillägg: variablerna g2_a - g2_e är svarsalternativ till samma fråga.]
+    (I VIP-enkät: 1989->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+g2_d_missingkey:
+  colname_silver: "g2_d_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+g2_e:
+  colname_silver: "g2_e"
+  recodings:
+  - "1 ~ yes"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Physical activity, Occupation - Mostly physically demanding"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Best description of physical activity at work
+    = Occasionally physically demanding?'"
+  notes_swe: "g2_e = Fysiskt tungt större delen av tiden. Markera det alternativ som
+    bäst beskriver ditt arbete. [Tillägg: variablerna g2_a - g2_e är svarsalternativ
+    till samma fråga.] (I VIP-enkät: 1989->)"
+  data_values:
+  - "yes ~ Box ticked"
+  - "NA ~ Box not ticked"
+g2_e_missingkey:
+  colname_silver: "g2_e_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+g3_a:
+  colname_silver: "g3_a"
+  recodings:
+  - "0 ~ never"
+  - "1 ~ 1-2 times/month"
+  - "2 ~ 3-4 times/month"
+  - "3 ~ 2-3 times/week"
+  - "4 ~ every day"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Physical activity, Leisure - Walks"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How often do you go for walks in your leisure
+    time?'"
+  notes_swe: "Hur ofta ägnar du dig på din fritid åt promenader? 0 = Aldrig, 1 = 1-2
+    ggr/månad, 2 = 3-4 ggr/månad, 3 = 2-3 ggr/vecka, 4 = Varje dag. (I VIP-enkät:
+    1989->)"
+  data_values:
+  - "never ~ Never"
+  - "1-2 times/month ~ 1-2 times/month"
+  - "2-3 times/month ~ 2-3 times/month"
+  - "3-4 times/week ~ 3-4 times/week"
+  - "every day ~ Every day"
+  - "NA ~ Missing"
+g3_a_missingkey:
+  colname_silver: "g3_a_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+g3_b:
+  colname_silver: "g3_b"
+  recodings:
+  - "0 ~ never"
+  - "1 ~ 1-2 times/month"
+  - "2 ~ 3-4 times/month"
+  - "3 ~ 2-3 times/week"
+  - "4 ~ every day"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Physical activity, Leisure - Bike rides"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How often do you go for bike rides in your leisure
+    time?'"
+  notes_swe: "Hur ofta ägnar du dig på din fritid åt cykelturer? 0 = Aldrig, 1 = 1-2
+    ggr/månad, 2 = 3-4 ggr/månad, 3 = 2-3 ggr/vecka, 4 = Varje dag. (I VIP-enkät:
+    1989->)"
+  data_values:
+  - "never ~ Never"
+  - "1-2 times/month ~ 1-2 times/month"
+  - "2-3 times/month ~ 2-3 times/month"
+  - "3-4 times/week ~ 3-4 times/week"
+  - "every day ~ Every day"
+  - "NA ~ Missing"
+g3_b_missingkey:
+  colname_silver: "g3_b_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+g6:
+  colname_silver: "g6"
+  recodings:
+  - "1 ~ never"
+  - "2 ~ occasionally"
+  - "3 ~ 1-2 times/week"
+  - "4 ~ 2-3 times/week"
+  - "5 ~ >3 times/week"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Physical activity, Leisure - Workouts"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'How often have you exercised or engaged in physical
+    activity in the past three months, with the aim of improving your fitness and/or
+    well-being, while wearing exercise clothes?'"
+  notes_swe: "Hur ofta har du tränat eller motionerat i träningskläder de senaste
+    tre månaderna, i syfte att förbättra din kondition och/eller för att må bra? 1
+    = Aldrig, 2 = Då och då – ej regelbundet, 3 = 1-2 ggr/vecka, 4 = 2-3 ggr/vecka,
+    5 = Mer än 3 ggr/vecka. (I VIP-enkät: 1989->)"
+  data_values:
+  - "never ~ Never"
+  - "occasionally ~ Occasionally, not regularly"
+  - "1-2 times/week ~ 1-2 times/week"
+  - "2-3 times/week ~ 2-3 times/week"
+  - ">3 times/week ~ >3 times/week"
+  - "NA ~ Missing"
+g6_missingkey:
+  colname_silver: "g6_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+cage:
+  colname_silver: "CAGE"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "alcohol"
+  tags: "alcohol"
+  labels: "Alcohol - Cut down, Annoyance, Guilt, Eye-opener (CAGE)"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "CAGE (Cut down, Annoyance, Guilt, Eye-opener) is a score value based on
+    4 individual questions, to identify alcohol-related problems. The score ranges
+    from 0 to 4; where 0-1 suggests no signs of risky alcohol consumption, while a
+    score of 2-4 suggests possible risky alcohol consumption or alcohol dependence.
+    Note that individuals who describe themselves as non-drinkers (absolutist) are
+    asked to skip this question, thus missing values are not true missing for these
+    individuals. [Note: in the unabridged dataset at BRS, the responses to each of
+    the included 4 questions are available.]"
+  notes_swe: "CAGE (Cut down, Annoyance, Guilt, Eye-opener) beräknas utifrån frågorna
+    i2, i3, i4 och i5 alternativt j12, j11, j7 och j6. CAGE har räknats ihop till
+    ett index mellan 0-4 där 0-1 tolkas som ”ej tecken till riskabel alkoholkonsumtion”
+    och 2-4 tolkas som ”möjlig riskabel alkoholkonsumtion/alkoholberoende”. Observera
+    att de individer som svarat att de är absolutist på fråga i1 uppmanats hoppa över
+    fråga i2-i5, vilket innebär att de uteblivna svaren på dessa frågor inte är verklig
+    missing. [Tillägg: i- och j-variablerna beskrivs i BRS variabelförklaring] (I
+    VIP-enkät: 1989->)"
+audit:
+  colname_silver: "AUDIT"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "alcohol"
+  tags: "alcohol"
+  labels: "Alcohol - Alcohol Use Disorders Identification Test (AUDIT)"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "AUDIT (Alcohol Use Disorders Identification Test) is a score value based
+    on 10 individual questions, used to identify risk levels of alcohol consumption.
+    The score ranges from 0 to 40, with higher scores indicating higher risk. For
+    women, a score of 6 or more suggests risky or harmful alcohol consumption, and
+    14 or more indicates probable alcohol dependence. For men, a score of 8 or more
+    suggests risky or harmful alcohol consumption, and 16 or more indicates probable
+    alcohol dependence. [Note: in the unabridged dataset at BRS, the responses to
+    each of the included 10 questions are available.]"
+  notes_swe: "AUDIT (Alcohol Use Disorders Identification Test) ger en indikation
+    på riskabel/skadlig alkoholkonsumtion och eventuellt missbruk/beroende. Indexet
+    har beräknats utifrån frågorna j1-j10. Alla frågor i AUDIT har ett poängintervall
+    från 0-4 poäng. Svaren på frågorna har således poängsatts och summerats. De siffror
+    som står intill svarsalternativen i enkäten är alltså inte samma som den poäng
+    som svaret ger. Maxpoäng är 40. För kvinnor: 6 poäng eller mer indikerar riskfylld/skadlig
+    alkoholkonsumtion, 14 poäng eller mer innebär troligt missbruk/beroende. För män:
+    8 poäng eller mer indikerar riskfylld/skadlig alkoholkonsumtion, 16 poäng eller
+    mer innebär troligt missbruk/beroende. [Tillägg: j-variablerna beskrivs i BRS
+    variabelförklaring] (I VIP-enkät: 2005->)"
+sm_status:
+  colname_silver: "sm_status"
+  recodings:
+  - "1 ~ smoker"
+  - "2 ~ former smoker"
+  - "3 ~ never smoked"
+  - "4 ~ occasional smoker"
+  - "5 ~ former occasional smoker"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  labels: "Tobacco - Smoking status"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Smoking status?'."
+  notes_swe: "Rökstatus: 1 = Rökare, 2 = Ex rökare, 3 = Har aldrig rökt, 4 = Röker
+    då och då, 5 = Rökte tidigare då och då. Vissa antaganden har gjorts för att korrigera
+    och tolka rådata med hänsyn tagen till enkäternas utformning. (I VIP-enkät: 1985->)"
+  data_values:
+  - "smoker ~ Smoker"
+  - "former smoker ~ Former smoker"
+  - "never smoked ~ Never smoked"
+  - "occasional smoker ~ Occasional smoker"
+  - "former occasional smoker ~ Former occasional smoker"
+  - "NA ~ Missing"
+sm_status_missingkey:
+  colname_silver: "sm_status_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+sm_num_cig_grouped:
+  colname_silver: "sm_cig_groups"
+  recodings:
+  - "1 ~ 1-4"
+  - "2 ~ 5-14"
+  - "3 ~ 15-24"
+  - "4 ~ >25"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  labels: "Tobacco - Number of cigarettes per day, grouped"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Number of cigarettes (interval) per day?'."
+  notes_swe: "Antal cigaretter per dag: 1 = 1-4, 2 = 5-14, 3 = 15-24, 4 = >25. Vissa
+    antaganden har gjorts för att korrigera och tolka rådata med hänsyn tagen till
+    enkäternas utformning. (I VIP-enkät: 1992->)"
+  data_values:
+  - "1-4 ~ 1-4"
+  - "5-14 ~ 5-14"
+  - "15-24 ~ 15-"
+  - ">25 ~ >25"
+  - "NA ~ Missing"
+sm_num_cig_grouped_missingkey:
+  colname_silver: "sm_cig_groups_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+sm_num_cig:
+  colname_silver: "sm_num_cig"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  labels: "Tobacco - Number of cigarettes per day"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Number of cigarettes per day?'."
+  notes_swe: "Antal cigaretter per dag. Vissa antaganden har gjorts för att korrigera
+    och tolka rådata med hänsyn tagen till enkäternas utformning. (I VIP-enkät: 1985-1992)"
+sm_num_cig_missingkey:
+  colname_silver: "sm_num_cig_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+sm_num_cigar:
+  colname_silver: "sm_num_cigar"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  labels: "Tobacco - Number of cigares per day"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Number of cigars per day?'."
+  notes_swe: "Antal cigarrer per dag. Pga av att man i en del enkättyper efterfrågat
+    cigarrer per vecka har antalet i vissa fall dividerats med 7. Vissa antaganden
+    har gjorts för att korrigera och tolka rådata med hänsyn tagen till enkäternas
+    utformning. (I VIP-enkät: 1985-1992)"
+sm_num_cigar_missingkey:
+  colname_silver: "sm_num_cigar_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+sm_gr_tobacco:
+  colname_silver: "sm_gr_tobacco"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  labels: "Tobacco - Total amout tobacco (grams/week)"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Grams of tobacco per week?'."
+  notes_swe: "Gram tobak per vecka. Vissa antaganden har gjorts för att korrigera
+    och tolka rådata med hänsyn tagen till enkäternas utformning. (I VIP-enkät: 1985-1992)"
+sm_gr_tobacco_missingkey:
+  colname_silver: "sm_gr_tobacco_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+sm_start:
+  colname_silver: "sm_start"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  labels: "Tobacco - Age at smoking start"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Age when you started smoking?'."
+  notes_swe: "Ålder vid rökstart. Vissa antaganden har gjorts för att korrigera och
+    tolka rådata med hänsyn tagen till enkäternas utformning. (I VIP-enkät: 1985->)"
+sm_start_missingkey:
+  colname_silver: "sm_start_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+sm_stop:
+  colname_silver: "sm_stop"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  labels: "Tobacco - Age at smoking cessation"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Age when you stopped smoking?'."
+  notes_swe: "Ålder vid rökslut. Vissa antaganden har gjorts för att korrigera och
+    tolka rådata med hänsyn tagen till enkäternas utformning. (I VIP-enkät: 1985-)"
+sm_stop_missingkey:
+  colname_silver: "sm_stop_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+sm_duration:
+  colname_silver: "sm_duration"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  labels: "Tobacoo - Total years of smoking"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Number of years an individual has smoked, calculated based on the age they
+    started (`sm_start`) and the age they stopped (`sm_stop`) smoking. For current
+    smokers, the duration is calculated up to the date of the questionnaire. Note
+    that this information may be misleading for individuals who have quit smoking
+    and then started again."
+  notes_swe: "Rökt i antal år beräknad utifrån sm_start och sm_stop. För de som uppgett
+    att de röker och värde för sm_stop saknas anges sm_duration fram tom datum för
+    enkäten. Observera att informationen i sm_duration kan vara missvisande för gruppen
+    rökare som angett att de någon gång slutat röka (och sedan börjat igen). Vissa
+    antaganden har gjorts för att korrigera och tolka rådata med hänsyn tagen till
+    enkäternas utformning. (I VIP-enkät: 1985->)"
+sm_duration_missingkey:
+  colname_silver: "sm_duration_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "smoking"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+sn_status:
+  colname_silver: "sn_status"
+  recodings:
+  - "1 ~ snus user"
+  - "2 ~ former snus user"
+  - "3 ~ non-snus user"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "snussnuff"
+  labels: "Tobacco - Snus Status"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Snus status?'."
+  notes_swe: "Snusstatus: 1 = Snusare, 2 = Ex snusare, 3 = Icke snusare. Vissa antaganden
+    har gjorts för att korrigera och tolka rådata med hänsyn tagen till enkäternas
+    utformning. (I VIP-enkät: 1985->)"
+  data_values:
+  - "snus user ~ Snus user"
+  - "former snus user ~ Former snus user"
+  - "non-snus user ~ Non-snus user"
+  - "NA ~ Missing"
+sn_status_missingkey:
+  colname_silver: "sn_status_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "snussnuff"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+sn_quantity:
+  colname_silver: "sn_quantity"
+  recodings:
+  - "1 ~ <2"
+  - "2 ~ 2-4"
+  - "3 ~ 5-6"
+  - "4 ~ >=7"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "snussnuff"
+  labels: "Tobacco - Number of snus boxes per week"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Number of snus boxes per week?'."
+  notes_swe: "Snusar antal snusdosor per vecka: 1 = Mindre än 2, 2 = 2 till 4, 3 =
+    Mer än 4 men mindre än 7, 4 = 7 eller mer. Vissa antaganden har gjorts för att
+    korrigera och tolka rådata med hänsyn tagen till enkäternas utformning. (I VIP-enkät:
+    1985->)"
+  data_values:
+  - "<2 ~ <2 boxes"
+  - "2-4 ~ 2-4 boxes"
+  - "5-6 ~ 5-6 boxes"
+  - ">=7 ~ >=7 boxes"
+  - "NA ~ Missing"
+sn_quantity_missingkey:
+  colname_silver: "sn_quantity_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "snussnuff"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+sn_duration:
+  colname_silver: "sn_time"
+  coltypes: "number"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "snussnuff"
+  labels: "Tobacoo - Total years of snus usage"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Response to the question: 'Number of years you have used snus?'."
+  notes_swe: "Snusat antal år. Vissa antaganden har gjorts för att korrigera och tolka
+    rådata med hänsyn tagen till enkäternas utformning. (I VIP-enkät: 1988->)"
+sn_duration_missingkey:
+  colname_silver: "sn_time_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "snussnuff"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+sm_status_alt:
+  colname_silver: "sm_yes_no"
+  recodings:
+  - "0 ~ non-smoker/no response"
+  - "1 ~ smoker"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "snussnuff"
+  labels: "Tobacco - Smoking status"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Smoking status, for those where smokeing data is not available from VIP
+    questionnaire"
+  notes_swe: "Rökning (gäller de som inte har rökdata från VIP-enkät): 0 = Icke-rökare/inget
+    svar, 1 = Rökare. Vissa antaganden har gjorts för att korrigera och tolka rådata
+    med hänsyn tagen till enkäternas utformning. (I VIP-enkät: 1985-2010)"
+  data_values:
+  - "non-smoker/no response ~ Non-smoker/no response"
+  - "smoker ~ Smoker"
+  - "NA ~ Missing"
+sm_status_alt_missingkey:
+  colname_silver: "sm_yes_no_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "snussnuff"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+sn_status_alt:
+  colname_silver: "sn_yes_no"
+  recodings:
+  - "0 ~ non-snus user/no response"
+  - "1 ~ snus user"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "snussnuff"
+  labels: "Tobacco - Snus Status"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Snus status, for those where snus data is not available from VIP questionnaire"
+  notes_swe: "Snusning (gäller de som inte har rökdata från VIP-enkät): 0 = Icke-snusare/inget
+    svar, 1 = Snusare. Vissa antaganden har gjorts för att korrigera och tolka rådata
+    med hänsyn tagen till enkäternas utformning. (I VIP-enkät: 1985-2010)"
+  data_values:
+  - "non-snus user/no response ~ Non-snus user/no response"
+  - "snus user ~ Snus user"
+  - "NA ~ Missing"
+sn_status_alt_missingkey:
+  colname_silver: "sn_yes_no_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "tobacco"
+  tags:
+  - "tobacco"
+  - "snussnuff"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+pa_index:
+  colname_silver: "pa_index"
+  recodings:
+  - "1 ~ inactive"
+  - "2 ~ moderately inactive"
+  - "3 ~ moderately active"
+  - "4 ~ active"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Cambridge index - imputed missing"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Cambridge index for physical activity, based on two questions from the VIP
+    questionnaire related to physical activity at work (`g2`) and during leisure time
+    (`g6`). The index does not account for 'daily movement' (vardagsmotion). The index
+    is represented by two variables, `pa_index` and `pa_index_noimpute`, which differ
+    in how they handle missing values. For `pa_index`, missing values are imputed
+    using the lowest activity level, whereas for `pa_index_noimpute`, individuals
+    with missing values are excluded. Individuals with missing values are identified
+    using `pa_index_miss_work` and `pa_index_miss_leisure`. The Cambridge index is
+    validated in the publication: Eur J Epidemiol. 2012 Jan;27(1):15-25."
+  notes_swe: "Index för fysisk aktivitet: 1 = Inaktiv, 2 = Måttligt inaktiv, 3 = Måttligt
+    aktiv, 4 = Aktiv. För deltagare där värde saknas i en av de två inkluderade variablerna
+    ersätts saknat värde med den lägsta intensitetsnivån för den variabeln. Cambridge
+    index för fysisk aktivitet: Detta index är begränsat till fysisk aktivitet vid
+    träningspass och i arbetssituationen. Det tar inte hänsyn till frågor om vardagsmotion,
+    för dessa, se övriga G-frågor. [Tillägg: G-variablerna beskrivs i BRS variabelförklaring]
+    Cambridge index för fysisk aktivitet är ett validerat index baserat på två frågor
+    i VIP-enkäten relaterade till fysisk aktivitet på arbetet (g2) och på fritiden
+    (g6). (Interact Consortium 'Validity of a short questionnaire to assess physical
+    activity in 10 European countries'. Eur J Epidemiol. 2012 Jan;27(1):15-25) (I
+    VIP-enkät: 1989-)"
+  data_values:
+  - "inactive ~ Inactive"
+  - "moderately inactive ~ Moderately inactive"
+  - "moderately active ~ Moderately active"
+  - "active ~ Active"
+  - "NA ~ Missing"
+pa_index_missingkey:
+  colname_silver: "pa_index_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+pa_index_noimpute:
+  colname_silver: "pa_index_miss"
+  recodings:
+  - "1 ~ inactive"
+  - "2 ~ moderately inactive"
+  - "3 ~ moderately active"
+  - "4 ~ active"
+  - "NA ~ NA"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Cambridge index - excluded missing"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Cambridge index for physical activity, based on two questions from the VIP
+    questionnaire related to physical activity at work (`g2`) and during leisure time
+    (`g6`). The index does not account for 'daily movement' (vardagsmotion). The index
+    is represented by two variables, `pa_index` and `pa_index_noimpute`, which differ
+    in how they handle missing values. For `pa_index`, missing values are imputed
+    using the lowest activity level, whereas for `pa_index_noimpute`, individuals
+    with missing values are excluded. Individuals with missing values are identified
+    using `pa_index_miss_work` and `pa_index_miss_leisure`. The Cambridge index is
+    validated in the publication: Eur J Epidemiol. 2012 Jan;27(1):15-25."
+  notes_swe: "Index för fysisk aktivitet: 1 = Inaktiv, 2 = Måttligt inaktiv, 3 = Måttligt
+    aktiv, 4 = Aktiv. Deltagare där värde saknas i en av de två inkluderade variablerna
+    inkluderas inte i beräkningen. Cambridge index för fysisk aktivitet: Detta index
+    är begränsat till fysisk aktivitet vid träningspass och i arbetssituationen. Det
+    tar inte hänsyn till frågor om vardagsmotion, för dessa, se övriga G-frågor. [Tillägg:
+    G-variablerna beskrivs i BRS variabelförklaring] Cambridge index för fysisk aktivitet
+    är ett validerat index baserat på två frågor i VIP-enkäten relaterade till fysisk
+    aktivitet på arbetet (g2) och på fritiden (g6). (Interact Consortium 'Validity
+    of a short questionnaire to assess physical activity in 10 European countries'.
+    Eur J Epidemiol. 2012 Jan;27(1):15-25) (I VIP-enkät: 1989-)"
+  data_values:
+  - "inactive ~ Inactive"
+  - "moderately inactive ~ Moderately inactive"
+  - "moderately active ~ Moderately active"
+  - "active ~ Active"
+  - "NA ~ Missing"
+pa_index_noimpute_missingkey:
+  colname_silver: "pa_index_miss_missingkey"
+  recodings:
+  - "5555 ~ response not registered"
+  - "6666 ~ response inconsistent/indecipherable"
+  - "7777 ~ questionnaire missing"
+  - "8888 ~ question not in questionnaire"
+  - "9999 ~ question not answered"
+  - "NA ~ response registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+pa_index_miss_work:
+  colname_silver: "occup_pa_miss"
+  recodings:
+  - "1 ~ data missing"
+  - "NA ~ data registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Cambridge index - missing occupation"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Information about missing values for physical activity at work (`g2`), used
+    to calculate in the Cambridge index for physical activity."
+  notes_swe: "1 = Värde saknas för fysisk aktivitet under arbetstid. [Tillägg: ingår
+    i variabelgruppen 'Cambridge index för fysisk aktivitet'] (I VIP-enkät: 1989-)"
+  data_values:
+  - "data missing ~ Data missing"
+  - "data registered ~ Data registered"
+pa_index_miss_leisure:
+  colname_silver: "leisure_pa_miss"
+  recodings:
+  - "1 ~ data missing"
+  - "NA ~ data registered"
+  coltypes: "character"
+  categories:
+  - "questionnaire"
+  - "physical_activity"
+  tags: "physical_activity"
+  labels: "Cambridge index - missing leisure"
+  sources_avan: "brs"
+  origins: "region västerbotten"
+  notes: "Information about missing values for physical activity during leisure time
+    (`g6`), used to calculate in the Cambridge index for physical activity."
+  notes_swe: "1 = Värde saknas för fysisk aktivitet på fritiden. [Tillägg: ingår i
+    variabelgruppen 'Cambridge index för fysisk aktivitet'] (I VIP-enkät: 1989-)"
+  data_values:
+  - "data missing ~ Data missing"
+  - "data registered ~ Data registered"
+eventdate:
+  tidyaction: "harmonized"
+  coltypes: "date"
+  categories: "avan_internal"
+  tags: "internal"
+  labels: "Date of event"
+  sources_avan: "internal"
+  origins: "internal"
+  notes: "Copy of column `questionnaire_date`"
+  notes_swe: "NA"
+eventtype:
+  coltypes: "character"
+  categories: "avan_internal"
+  tags: "internal"
+  labels: "Type of event"
+  sources_avan: "internal"
+  origins: "internal"
+  notes: "NA"
+  notes_swe: "NA"
+projecttags:
+  coltypes: "character"
+  categories: "avan_internal"
+  tags: "internal"
+  labels: "Projects in which an individual is included"
+  sources_avan: "internal"
+  origins: "internal"
+  notes: "NA"
+  notes_swe: "NA"
+who_can_use:
+  coltypes: "character"
+  categories: "avan_internal"
+  tags: "internal"
+  labels: "Who can use data"
+  sources_avan: "internal"
+  origins: "internal"
+  notes: "NA"
+  notes_swe: "NA"
+  data_values: "Nobody ~ Not to be shared beyond Avan"
