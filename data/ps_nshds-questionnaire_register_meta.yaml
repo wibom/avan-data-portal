@@ -1,0 +1,50 @@
+filename: "ps_nshds-questionnaire_register.tsv"
+puddle_id: "in_0008"
+source_code: "~/avan-prod/data/in_0008/code/20_tidy/10_tidy_nshds.Rmd"
+source_data: "~/avan-prod/data/in_0008/02_silver/ps_nshds-questionaire_register.tsv"
+n_individuals: 50087
+n_observations: 89597
+n_columns: 191
+title: "NSHDS Questionnaires"
+subtitle: "NSHSA Questionnaire Responses, Blood Measurements, and Anthropometric Data
+  on all Participants in the Predict Cohort."
+info: "This dataset includes data from questionnaires and measurements taken during
+  visits to healthcare centers as part of the Västerbotten Intervention Programme
+  (VIP). VIP is a cohort within the Northern Sweden Health and Disease Study (NSHDS).
+  Residents of Västerbotten County are invited to general health examinations at 10-year
+  intervals, specifically at the ages of 40, 50, and 60."
+info_internal:
+- "Until further notice, data may not be shared with researchers."
+- "Linking the questionnaire data with donated blood samples is done by matching on
+  `avanid` and `questionnaire_date`. According to BRS convention, date matching is
+  performed within a standard interval of +/- 31 days."
+- "Many variables originally contained codes (i.e., '5555', '6666', '7777', '8888',
+  '9999') representing different reasons for data missingness. Since these values
+  cannot be included in analyses, we extracted this information into separate columns
+  during data tidying. These new columns were named after the original columns with
+  the suffix `*_missingkey`, resulting in a total of 74 new columns."
+idcols_individuals: "avanid"
+idcols_observations:
+- "avanid"
+- "eventdate"
+observation_descriptions: "Each row represents data from one healthcare visit by an
+  individual at a specific timepoint. Some information comes from the individual´s
+  questionnaire responses, and the rest from measurements taken during the visit."
+tags:
+- "NSHDS"
+- "VIP"
+- "questionnaire"
+- "anthropometry"
+- "life style"
+- "quality of life"
+- "family history"
+categories:
+- "questionnaire"
+- "register"
+projects: "predict"
+pis: "Beatrice Melin"
+source: "Robert Johansson at BRS"
+origin: "Region Västerbotten"
+notes: "Data contains weight values outside the 30-200kg range (n = 1)."
+ingest_date: "2024-02-01"
+confidential: ~
