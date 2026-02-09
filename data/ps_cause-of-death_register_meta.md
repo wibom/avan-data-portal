@@ -15,10 +15,3 @@ a record in the register within this time span.
     - CDC ICD‑9‑CM archive: 
       <https://archive.cdc.gov/www_cdc_gov/nchs/icd/icd9cm.htm>  
       (RTF: <https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD9-CM/2011/Appndx12.zip> — file `DC_3D12.RTF`)
-
-- **Contributing causes.** Up to 17 contributing causes of death are held in
-  `cod_contributing_01`–`cod_contributing_17` (renamed from `MORSAK1`–`MORSAK17`).
-  RO‑variables (`RO1`–`RO48`)—which encode certificate row/ordinal—were **not** in the
-  extract; ordering on the certificate therefore cannot be reconstructed. Guidance on RO
-  coding: see sample certificate (Swedish):  
-  <https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/artikelkatalog/foreskrifter-och-allmanna-rad/bilaga6-dodsorsaksintyg.pdf>
