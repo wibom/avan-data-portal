@@ -1,0 +1,13 @@
+This variabel list is an extract from the variabel list of the Swedish Health and Disease Study (NSHDS). It includes all variables from the VIP-Cohort (Västerbotten Intervention Program) and the MONICA-Cohort that are relevant for PREDICT.
+
+Date of extraction: 2026‑02
+
+- If you wish to order NSHDS variables not included in PREDICT’s NSHDS variable selection, please visit the general information page on access to NSHDS samples and data.
+<https://www.umu.se/en/brs/provsamlingar-och-register/nshds/>
+
+- For detailed information on the NSHDS Cohort take a look at the 2025 published cohort profile:
+<https://academic.oup.com/ije/article/54/1/dyaf004/7997668>
+
+- More information on the descriptive statistics of NSHDS:
+<https://www.umu.se/en/brs/research/descriptive-statistics/>
+
