@@ -1,12 +1,12 @@
 This dataset is an extract from the **National Cancer Register**, covering the period
-from *1958‑01‑01* to *2022‑03‑31*. It includes all individuals in the Predict cohort
-who are included in the National Cancer Register.
-
--  The National Board of Health and Welfare (Socialstyrelsen) provides a variable list
-   online:  
-   <https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/dokument-webb/statistik/register-variabelforteckning-cancerregistret.xlsx>
+from **1958‑01‑01** to **2022‑03‑31**. It includes all individuals in the Predict cohort
+who are included with relevant register records within this rime span.
 
 -  **Date of extraction:** 2025‑02‑25
+
+-  The National Board of Health and Welfare (Socialstyrelsen) provides a variable list (variables correspond to colname_sliver in Avan´s internal codebook):
+ <https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/dokument-webb/statistik/register-variabelforteckning-cancerregistret.xlsx>
+
 
 -  **Official site:** 
    <https://www.socialstyrelsen.se/statistik-och-data/register/cancerregistret/>
