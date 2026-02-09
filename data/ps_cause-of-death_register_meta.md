@@ -4,6 +4,8 @@ a record in the register within this time span.
 
 - **Date of extraction:** 2025‑02‑24
 
+Many records contain BLANKED code values. These values reflect values redacted by Socialstyrelsen because they were not part of the approved application.
+
 - **Official site:**
   <https://www.socialstyrelsen.se/statistik-och-data/register/dodsorsaksregistret/>
 
