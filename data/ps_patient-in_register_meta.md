@@ -1,7 +1,5 @@
 This dataset is an extract from the **National In‑Patient Register (Slutenvård)**, covering the periode from **1987‑01‑01** to **2022‑03‑31**. It includes all individuals in the Predict cohort with relevant register records within this time span.
 
-**Date of extraciton:**
-
 The National Board of Health and Welfare provides a variable list online (variables correspond to `colname_silver` in Avan’s internal codebook):  
 https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/dokument-webb/ovrigt/register-variabelforteckning-patientregistret.xlsx
 
