@@ -89,9 +89,16 @@
 </head>
 <body>
   <header>
-    <div class="container">
-      <h1>PREDICT</h1>
-      <div class="subtitle">Avan data portal</div>
+    <div class="container" style="display:flex;align-items:center;gap:1rem;">
+      <div class="brand-logo" style="flex:0 0 auto;">
+        {% if logo_data_uri %}
+        <img src="{{ logo_data_uri }}" alt="Logo" style="height:64px;width:auto;display:block;" />
+        {% endif %}
+      </div>
+      <div class="brand-title" style="flex:1;">
+        <h1 style="margin:0">PREDICT</h1>
+        <div class="subtitle">Avan data portal</div>
+      </div>
     </div>
   </header>
 

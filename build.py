@@ -47,6 +47,7 @@ OUTPUT_HTML = DIST_DIR / "variables_browser.html"
 VARIABLES_CONFIG = CONFIG_DIR / "variables_config.yaml"
 INTRO_MD = CONTENT_DIR / "intro.md"
 FOOTER_MD = CONTENT_DIR / "footer.md"
+LOGO_PATH = CONTENT_DIR / "logo.png"
 
 # -------- Utilities --------
 
@@ -556,6 +557,8 @@ def format_provenance(prov_per_dataset: Dict[str, List[Tuple[str, str]]]) -> str
         supplemental_files.append(INTRO_MD)
     if FOOTER_MD.exists():
         supplemental_files.append(FOOTER_MD)
+    if LOGO_PATH.exists():
+        supplemental_files.append(LOGO_PATH)
 
     # Per-dataset YAMLs and MDs
     for ds_id in sorted(prov_per_dataset.keys()):
@@ -617,9 +620,38 @@ def render_html(datasets: List[Dict[str, Any]], intro_html: str, provenance_text
         data_json=data_json,
         intro_html=intro_html,
         provenance=provenance_text,
-        footer_html=load_footer_html()
+        footer_html=load_footer_html(),
+        logo_data_uri=load_logo_data_uri()
     )
     return html
+
+
+def load_logo_data_uri() -> str:
+    """
+    If `content/logo.*` exists, return a base64 data URI for embedding.
+    Otherwise return empty string.
+    """
+    if not LOGO_PATH.exists():
+        return ""
+    data = LOGO_PATH.read_bytes()
+    # Only support common raster types — infer from suffix
+    suffix = LOGO_PATH.suffix.lower()
+    if suffix in ('.png',):
+        mime = 'image/png'
+    elif suffix in ('.jpg', '.jpeg'):
+        mime = 'image/jpeg'
+    elif suffix in ('.svg',):
+        # SVG is text; return raw svg string (no base64) to keep it crisp
+        try:
+            txt = data.decode('utf-8')
+            return f"data:image/svg+xml;utf8,{txt}"
+        except Exception:
+            mime = 'image/svg+xml'
+    else:
+        mime = 'application/octet-stream'
+    import base64
+    b64 = base64.b64encode(data).decode('ascii')
+    return f"data:{mime};base64,{b64}"
 
 # -------- Build entrypoint --------
 
