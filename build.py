@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional
 
 import yaml  # PyYAML
+import markdown  # Markdown processing
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 # -------- Paths --------
@@ -82,30 +83,33 @@ def read_yaml(path: Path) -> Any:
 
 def md_to_html_intro(text: str) -> str:
     """
-    Convert intro.md to simple HTML.
-    If 'markdown' is available, use it; otherwise, join paragraphs.
+    Convert intro.md to simple HTML using markdown with admonitions support.
     """
     if not text:
         return ""
     try:
-        import markdown  # optional
-        return markdown.markdown(text, extensions=["extra", "sane_lists", "tables"])
-    except Exception:
+        # extra includes tables, code fences, footnotes, abbr, attr_list
+        # admonition provides !!! callout syntax
+        return markdown.markdown(text, extensions=["extra", "admonition"])
+    except Exception as e:
+        print(f"Warning: Failed to process markdown: {e}")
         parts = [p.strip() for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
         return "".join(f"<p>{escape_html(p)}</p>" for p in parts)
 
 def md_to_html_dataset(text: str) -> str:
     """
     Convert dataset description markdown to HTML.
-    Uses the markdown library with support for lists, tables, and code blocks.
+    Uses the markdown library with support for lists, tables, code blocks, and admonitions.
     """
     if not text:
         return ""
     try:
-        import markdown  # optional
-        # Use extensions to support various markdown features
-        return markdown.markdown(text, extensions=["extra", "sane_lists", "tables", "nl2br"])
-    except Exception:
+        # extra includes tables, code fences, footnotes, abbr, attr_list
+        # nl2br preserves line breaks
+        # admonition provides !!! callout syntax
+        return markdown.markdown(text, extensions=["extra", "nl2br", "admonition"])
+    except Exception as e:
+        print(f"Warning: Failed to process markdown: {e}")
         # Fallback: simple conversion
         parts = [p.strip() for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
         return "".join(f"<p>{escape_html(p)}</p>" for p in parts)

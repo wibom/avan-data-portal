@@ -66,6 +66,21 @@
     .btn.secondary { background: var(--brand-secondary); }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
+    /* Admonition styles */
+    .admonition { margin: 1rem 0; padding: 0.8rem 1rem; border-left: 4px solid var(--border); border-radius: 6px; background: var(--soft); }
+    .admonition.note { border-left-color: #2196F3; background: #E3F2FD; }
+    .admonition.warning { border-left-color: #FF9800; background: #FFF3E0; }
+    .admonition.danger { border-left-color: #F44336; background: #FFEBEE; }
+    .admonition.tip { border-left-color: #4CAF50; background: #E8F5E9; }
+    .admonition.info { border-left-color: #00BCD4; background: #E0F2F1; }
+    .admonition.success { border-left-color: #4CAF50; background: #E8F5E9; }
+    .admonition.bug { border-left-color: #F44336; background: #FFEBEE; }
+    .admonition.example { border-left-color: #9C27B0; background: #F3E5F5; }
+    .admonition.quote { border-left-color: #777; background: #f5f5f5; font-style: italic; }
+    .admonition > :first-child { margin-top: 0; }
+    .admonition > :last-child { margin-bottom: 0; }
+    .admonition-title { font-weight: 700; margin-bottom: 0.5rem; }
+
     footer { max-width: 1200px; margin: 2rem auto; padding: 0 1rem 3rem; color: var(--muted); font-size: 0.9rem; }
     footer details { cursor: pointer; }
     footer details summary { user-select: none; font-weight: 600; }

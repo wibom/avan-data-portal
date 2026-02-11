@@ -240,6 +240,7 @@ Assembled dataset: foo variables: 1
   - Inline code
   - Links
   - Light HTML tags
+  - **Admonitions** (see section below)
 
 - Search matches:
   - Label
@@ -248,6 +249,77 @@ Assembled dataset: foo variables: 1
   - Group member names
 
 - Groups are created via patterns in `config/variables_config.yaml`.
+
+---
+
+## Markdown features: Admonitions
+
+Admonitions (callouts/alerts) can be used in dataset descriptions and the intro page
+using the `!!!` syntax. They are rendered with colored left borders and styled backgrounds.
+
+### Supported admonition types
+
+```markdown
+!!! note
+    This is a note — for general information
+
+!!! warning
+    This is a warning — for cautions and important notices
+
+!!! danger
+    This is a danger alert — for critical warnings
+
+!!! tip
+    This is a tip — for helpful suggestions
+
+!!! info
+    This is info — for informational content
+
+!!! success
+    This is success — for positive outcomes
+
+!!! bug
+    This is a bug report
+
+!!! example
+    This is an example
+
+!!! quote
+    This is a quotation
+```
+
+### Customizing admonition titles
+
+By default, the title is the admonition type (e.g., "Warning", "Note"). To use a custom title:
+
+```markdown
+!!! warning "Custom Title"
+    This warning has a custom title instead of "Warning"
+```
+
+### Usage examples
+
+**In `content/intro.md`:**
+```markdown
+# Welcome
+
+This introduction can include admonitions.
+
+!!! note
+    This note will appear prominently in the intro section.
+```
+
+**In dataset descriptions (`data/*_register_meta.md`):**
+```markdown
+# Dataset title
+
+!!! warning
+    This dataset contains sensitive information and requires special access.
+
+Regular paragraph text continues here...
+```
+
+Each admonition type has a distinct color scheme: notes are blue, warnings are orange, dangers are red, tips are green, and so on.
 
 ---
 
@@ -261,17 +333,20 @@ The build is deterministic:
 
 ---
 
-## Provenance
+## Build Information
 
-The footer of the generated HTML lists:
+The footer of the generated HTML contains an expandable "Build info" section that displays:
 
-- All input YAML files
-- Dataset Markdown files (if present)
-- The config file
-- The `intro.md` file
-- A combined SHA-256 digest
+- **Build date** — Timestamp (ISO format, rounded to whole seconds) of when the HTML was built
+- **Git SHA** — First 8 characters of the current git commit hash
 
-This supports traceability and reproducibility.
+This supports traceability and quick identification of which version of the code was used to generate the portal.
+
+The git SHA allows you to check out the exact version of the source that produced the portal:
+
+```bash
+git checkout <full-sha-hash>  # Use the full 40-character hash
+```
 
 ---
 
