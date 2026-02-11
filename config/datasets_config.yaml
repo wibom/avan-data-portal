@@ -1,0 +1,23 @@
+# Dataset grouping and ordering configuration
+#
+# Define groups in the order you want them displayed. Each group
+# can specify a `heading` and a `datasets` list of dataset ids
+# (these are the ids derived from filenames, e.g. 'ps_cancer').
+# Any dataset id listed here that does not exist in ./data will be
+# ignored and a warning will be printed during build.
+
+groups:
+  - heading: "National board of health and welfare"
+    datasets:
+      - ps_cancer
+      - ps_cause-of-death
+      - ps_patient-in
+      - ps_patient-out
+      - ps_prescribed-drug      
+  - heading: "Västerbotten Intervention Programme (VIP)"
+    datasets:
+      - ps_nshds-questionnaire
+
+
+# Any datasets not listed above will be appended in an "Other" section
+# in alphabetical order.

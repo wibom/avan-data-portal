@@ -239,107 +239,102 @@
 
     function render(){
       const app = document.getElementById('app');
+      app.innerHTML = '';
 
-      state.datasets.forEach(ds => {
-        const section = document.createElement('section');
-        section.className='dataset-card'; section.dataset.datasetId = ds.id; section.id = ds.id;
-
-        // Header with description: prefer info_md; else fall back to info[]
-        const header = document.createElement('div'); header.className='dataset-header';
-
-        let infoHTML = '';
-        if (ds.info_html && String(ds.info_html).trim()){
-          // Pre-rendered HTML from server-side markdown conversion
-          infoHTML = `<div class="dataset-info">${ds.info_html}</div>`;
-        } else if (Array.isArray(ds.info) && ds.info.length){
-          // Fallback to YAML info list
-          infoHTML = `<div class="dataset-info">${
-            ds.info.map(p => `<p>${markdownToHtml(p)}</p>`).join('')
-          }</div>`;
+      // state.sections is an array of { heading, datasets: [...] }
+      (state.sections || [{ heading: '', datasets: state.datasets || [] }]).forEach(sec => {
+        const heading = sec.heading || '';
+        if (heading) {
+          const h = document.createElement('h2'); h.textContent = heading; h.style.color = 'var(--brand-primary)'; h.style.marginTop = '1.25rem'; app.appendChild(h);
         }
+        (sec.datasets || []).forEach(ds => {
+          const section = document.createElement('section');
+          section.className='dataset-card'; section.dataset.datasetId = ds.id; section.id = ds.id;
 
-        header.innerHTML=`
-          <h2 class="dataset-title">${escapeHTML(ds.title||ds.id)}</h2>
-          ${ds.subtitle?`<div class="dataset-subtitle">${escapeHTML(ds.subtitle)}</div>`:''}
-          ${infoHTML}`;
-        section.appendChild(header);
+          // Header with description: prefer info_md; else fall back to info[]
+          const header = document.createElement('div'); header.className='dataset-header';
 
-        // Toggle button below description, above filters/table
-        const toggleWrap = document.createElement('div'); toggleWrap.className='dataset-toggle-wrap';
-        toggleWrap.innerHTML = `
-          <button class="btn dataset-toggle"
-                  data-role="toggle-dataset"
-                  data-dataset-id="${escapeHTML(ds.id)}"
-                  aria-expanded="false">
-            Show variables
-          </button>`;
-        section.appendChild(toggleWrap);
+          let infoHTML = '';
+          if (ds.info_html && String(ds.info_html).trim()){
+            infoHTML = `<div class="dataset-info">${ds.info_html}</div>`;
+          } else if (Array.isArray(ds.info) && ds.info.length){
+            infoHTML = `<div class="dataset-info">${ds.info.map(p => `<p>${markdownToHtml(p)}</p>`).join('')}</div>`;
+          }
 
-        // Collapsible body: controls + table (hidden initially)
-        const body = document.createElement('div'); body.className='dataset-body is-collapsed'; body.id = `body-${ds.id}`;
+          header.innerHTML=`
+            <h2 class="dataset-title">${escapeHTML(ds.title||ds.id)}</h2>
+            ${ds.subtitle?`<div class="dataset-subtitle">${escapeHTML(ds.subtitle)}</div>`:''}
+            ${infoHTML}`;
+          section.appendChild(header);
 
-        const controls = document.createElement('div'); controls.className='controls';
-        controls.innerHTML=`
-          <input type="search" placeholder="Search… (label, variable, notes)" aria-label="Search variables">
-          <select data-role="filterCat" aria-label="Filter by category"><option value="">All categories</option></select>
-          <div class="info">${ds.variables.length} items</div>`;
-        body.appendChild(controls);
+          const toggleWrap = document.createElement('div'); toggleWrap.className='dataset-toggle-wrap';
+          toggleWrap.innerHTML = `
+            <button class="btn dataset-toggle"
+                    data-role="toggle-dataset"
+                    data-dataset-id="${escapeHTML(ds.id)}"
+                    aria-expanded="false">
+              Show variables
+            </button>`;
+          section.appendChild(toggleWrap);
 
-        const tableWrap = document.createElement('div'); tableWrap.className='table-wrap';
-        tableWrap.innerHTML=`
-          <table>
-            <thead><tr>
-              <th style="width:2rem"><input type="checkbox" data-action="toggle-all"></th>
-              <th>Label</th>
-              <th class="hide-sm">Variable name</th>
-              <th class="hide-sm">Source variable name</th>
-              <th class="hide-sm">Type</th>
-              <th class="hide-sm">Categories</th>
-            </tr></thead>
-            <tbody></tbody>
-          </table>`;
-        body.appendChild(tableWrap);
+          const body = document.createElement('div'); body.className='dataset-body is-collapsed'; body.id = `body-${ds.id}`;
+          const controls = document.createElement('div'); controls.className='controls';
+          controls.innerHTML=`
+            <input type="search" placeholder="Search… (label, variable, notes)" aria-label="Search variables">
+            <select data-role="filterCat" aria-label="Filter by category"><option value="">All categories</option></select>
+            <div class="info">${(ds.variables||[]).length} items</div>`;
+          body.appendChild(controls);
 
-        section.appendChild(body);
+          const tableWrap = document.createElement('div'); tableWrap.className='table-wrap';
+          tableWrap.innerHTML=`
+            <table>
+              <thead><tr>
+                <th style="width:2rem"><input type="checkbox" data-action="toggle-all"></th>
+                <th>Label</th>
+                <th class="hide-sm">Variable name</th>
+                <th class="hide-sm">Source variable name</th>
+                <th class="hide-sm">Type</th>
+                <th class="hide-sm">Categories</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>`;
+          body.appendChild(tableWrap);
+          section.appendChild(body);
 
-        // Populate category filter
-        const catCounts = computeCategoryCounts(ds);
-        const ddl = controls.querySelector('select[data-role="filterCat"]');
-        for(const [cat,_] of catCounts){ const opt=document.createElement('option'); opt.value=cat; opt.textContent=cat; ddl.appendChild(opt); }
+          const catCounts = computeCategoryCounts(ds);
+          const ddl = controls.querySelector('select[data-role="filterCat"]');
+          for(const [cat,_] of catCounts){ const opt=document.createElement('option'); opt.value=cat; opt.textContent=cat; ddl.appendChild(opt); }
 
-        // Render variable rows
-        const tbody = body.querySelector('tbody');
-        ds.variables.forEach(v=>{
-          v._search = [v.label, v.name, v.notes, ...(v.members||[])].filter(Boolean).join(' ');
-          tbody.appendChild(renderRow(ds, v));
-        });
-
-        // Wire search/filter
-        const search = controls.querySelector('input[type="search"]');
-        search.addEventListener('input', ()=>applyFilter(section, ds));
-        ddl.addEventListener('change', ()=>applyFilter(section, ds));
-
-        // Select-all (visible rows only)
-        body.querySelector('[data-action="toggle-all"]').addEventListener('change', (e)=>{
-          const rows = $all('tbody tr', body).filter(r=>r.style.display!=='none');
-          rows.forEach(r=>{
-            const cb=r.querySelector('input[type="checkbox"]');
-            cb.checked=e.target.checked;
-            cb.dispatchEvent(new Event('change'));
+          const tbody = body.querySelector('tbody');
+          (ds.variables||[]).forEach(v=>{
+            v._search = [v.label, v.name, v.notes, ...(v.members||[])].filter(Boolean).join(' ');
+            tbody.appendChild(renderRow(ds, v));
           });
-        });
 
-        // Toggle behavior
-        const btn = toggleWrap.querySelector('button[data-role="toggle-dataset"]');
-        btn.addEventListener('click', ()=>{
-          const expanded = btn.getAttribute('aria-expanded') === 'true';
-          const next = !expanded;
-          btn.setAttribute('aria-expanded', String(next));
-          btn.textContent = next ? 'Hide variables' : 'Show variables';
-          body.classList.toggle('is-collapsed', !next);
-        });
+          const search = controls.querySelector('input[type="search"]');
+          search.addEventListener('input', ()=>applyFilter(section, ds));
+          ddl.addEventListener('change', ()=>applyFilter(section, ds));
 
-        app.appendChild(section);
+          body.querySelector('[data-action="toggle-all"]').addEventListener('change', (e)=>{
+            const rows = $all('tbody tr', body).filter(r=>r.style.display!=='none');
+            rows.forEach(r=>{
+              const cb=r.querySelector('input[type="checkbox"]');
+              cb.checked=e.target.checked;
+              cb.dispatchEvent(new Event('change'));
+            });
+          });
+
+          const btn = toggleWrap.querySelector('button[data-role="toggle-dataset"]');
+          btn.addEventListener('click', ()=>{
+            const expanded = btn.getAttribute('aria-expanded') === 'true';
+            const next = !expanded;
+            btn.setAttribute('aria-expanded', String(next));
+            btn.textContent = next ? 'Hide variables' : 'Show variables';
+            body.classList.toggle('is-collapsed', !next);
+          });
+
+          app.appendChild(section);
+        });
       });
 
       updateCartUI();
@@ -485,11 +480,26 @@
     }
 
     window.addEventListener('DOMContentLoaded', ()=>{
-      state.datasets = parseData();
+      // Support grouped and legacy flat shapes
+      const parsed = parseData();
+      let sections = [];
+      let flat = [];
+      if (Array.isArray(parsed) && parsed.length && parsed[0] && typeof parsed[0] === 'object' && Array.isArray(parsed[0].datasets)){
+        sections = parsed;
+        parsed.forEach(sec => { (sec.datasets||[]).forEach(ds => flat.push(ds)); });
+      } else {
+        const dsArray = Array.isArray(parsed) ? parsed : [];
+        sections = [{ heading: '', datasets: dsArray }];
+        flat = dsArray;
+      }
+
+      state.sections = sections;
+      state.datasets = flat;
       state.datasets.forEach(ds=>{ ds.var_map = ds.var_map || {}; });
       render();
       document.getElementById('download-csv').addEventListener('click', downloadCSV);
       document.getElementById('clear-selection').addEventListener('click', clearSelection);
+
       // Build dataset index for navigation and TOC
       const dsIndex = state.datasets.map(d=>({id:d.id,title:d.title||d.id,subtitle:d.subtitle||''}));
 

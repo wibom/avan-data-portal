@@ -295,6 +295,38 @@ Rebuild afterwards:
 python build.py
 ```
 
+## Grouping & ordering datasets
+
+You can control how datasets are grouped and ordered in the generated
+HTML by adding a `config/datasets_config.yaml` file. The file should
+define an ordered list of groups, where each group contains a `heading`
+and a `datasets` list of dataset ids (the ids derived from filenames,
+e.g. `ps_cancer`). Example:
+
+```yaml
+groups:
+  - heading: "Cancer & Registers"
+    datasets:
+      - ps_cancer
+      - ps_cause-of-death
+  - heading: "Patient Events"
+    datasets:
+      - ps_patient-in
+      - ps_patient-out
+```
+
+Behavior:
+- Datasets listed in the config are validated against the files discovered
+  in `data/`; missing ids produce a warning during `python build.py` and
+  are ignored.
+- Configured groups are rendered in the order listed. Any datasets not
+  mentioned in the config are appended in an "Other datasets" section,
+  sorted alphabetically.
+- If `config/datasets_config.yaml` is absent, the build preserves the
+  previous (legacy) flat ordering: all discovered datasets are shown in
+  alphabetical order.
+
+
 ---
 
 ## Clean rebuild

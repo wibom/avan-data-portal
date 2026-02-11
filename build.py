@@ -39,6 +39,8 @@ CONFIG_DIR = ROOT_DIR / "config"
 TEMPLATES_DIR = ROOT_DIR / "templates"
 DIST_DIR = ROOT_DIR / "dist"
 
+DATASETS_CONFIG = CONFIG_DIR / "datasets_config.yaml"
+
 TEMPLATE_NAME = "index.html.j2"
 OUTPUT_HTML = DIST_DIR / "variables_browser.html"
 
@@ -564,6 +566,34 @@ def format_provenance(prov_per_dataset: Dict[str, List[Tuple[str, str]]]) -> str
 
     return "\n".join(lines)
 
+
+def load_datasets_config() -> List[Dict[str, Any]]:
+    """
+    Loads `config/datasets_config.yaml` and returns a list of groups:
+      - heading: str
+      - datasets: list[str]
+
+    If the config file is missing or malformed, returns an empty list.
+    """
+    if not DATASETS_CONFIG.exists():
+        return []
+    cfg = read_yaml(DATASETS_CONFIG) or {}
+    groups = cfg.get("groups") or []
+    # Normalize: ensure each group is a mapping with heading and datasets list
+    out: List[Dict[str, Any]] = []
+    if isinstance(groups, list):
+        for g in groups:
+            if not isinstance(g, dict):
+                continue
+            heading = g.get("heading") or g.get("label") or ""
+            datasets = g.get("datasets") or g.get("ids") or []
+            if isinstance(datasets, str):
+                datasets = [datasets]
+            if not isinstance(datasets, list):
+                datasets = []
+            out.append({"heading": heading, "datasets": list(datasets)})
+    return out
+
 # -------- Template rendering --------
 
 def render_html(datasets: List[Dict[str, Any]], intro_html: str, provenance_text: str) -> str:
@@ -593,19 +623,63 @@ def build() -> None:
     datasets: List[Dict[str, Any]] = []
     prov: Dict[str, List[Tuple[str, str]]] = {}
 
-    for ds_id, paths in sorted(discovered.items(), key=lambda kv: kv[0]):
-        ds, p = assemble_dataset(
-            ds_id=ds_id,
-            codebook_path=paths.get("codebook"),
-            meta_path=paths.get("meta"),
-            groups_cfg=groups_cfg,
-            ignore_names=ignore_names,
-            ignore_name_patterns=ignore_name_patterns,
-            ignore_tags=ignore_tags,
-            ignore_categories=ignore_categories,
-        )
-        datasets.append(ds)
-        prov[ds_id] = p
+    # Load optional grouping/ordering configuration for datasets
+    ds_groups_cfg = load_datasets_config()
+
+    # Keep a mutable set of discovered ids to track which have been consumed
+    remaining = set(discovered.keys())
+
+    if ds_groups_cfg:
+        # For each configured group, assemble datasets in the specified order
+        for group in ds_groups_cfg:
+            heading = group.get("heading") or ""
+            group_list: List[Dict[str, Any]] = []
+            for did in group.get("datasets", []) or []:
+                if did not in discovered:
+                    print(f"Warning: dataset '{did}' listed in {DATASETS_CONFIG.name} not found in data directory, ignoring.")
+                    continue
+                paths = discovered[did]
+                ds, p = assemble_dataset(
+                    ds_id=did,
+                    codebook_path=paths.get("codebook"),
+                    meta_path=paths.get("meta"),
+                    groups_cfg=groups_cfg,
+                    ignore_names=ignore_names,
+                    ignore_name_patterns=ignore_name_patterns,
+                    ignore_tags=ignore_tags,
+                    ignore_categories=ignore_categories,
+                )
+                group_list.append(ds)
+                prov[did] = p
+                remaining.discard(did)
+            # Only append non-empty groups
+            if group_list:
+                datasets.append({"heading": heading, "datasets": group_list})
+
+    # Append remaining (ungrouped) datasets in alphabetical order
+    if remaining:
+        others = []
+        for ds_id in sorted(remaining):
+            paths = discovered[ds_id]
+            ds, p = assemble_dataset(
+                ds_id=ds_id,
+                codebook_path=paths.get("codebook"),
+                meta_path=paths.get("meta"),
+                groups_cfg=groups_cfg,
+                ignore_names=ignore_names,
+                ignore_name_patterns=ignore_name_patterns,
+                ignore_tags=ignore_tags,
+                ignore_categories=ignore_categories,
+            )
+            others.append(ds)
+            prov[ds_id] = p
+        # If we had configured groups, put ungrouped under an "Other" heading,
+        # otherwise simply present a flat list (legacy behavior).
+        if ds_groups_cfg:
+            datasets.append({"heading": "Other datasets", "datasets": others})
+        else:
+            # legacy: flat list expected by template
+            datasets = others
 
     intro_html = load_intro_html()
     provenance_text = format_provenance(prov)
