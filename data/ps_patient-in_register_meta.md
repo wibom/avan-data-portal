@@ -1,12 +1,13 @@
-This dataset is an extract from the **National In‑Patient Register (Slutenvård)**, covering the periode from **1987‑01‑01** to **2022‑03‑31**. It includes all individuals in the Predict cohort with relevant register records within this time span.
+This dataset is an extract from the **National In‑Patient Register (Slutenvård)**, covering the period from *1987‑01‑01 to 2022‑03‑31*. It includes all individuals in the PREDICT cohort with relevant register records within this time span.
 
-The National Board of Health and Welfare provides a variable list online (variables correspond to `colname_silver` in Avan’s internal codebook):  
-https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/dokument-webb/ovrigt/register-variabelforteckning-patientregistret.xlsx
+- **Official site:**  
+  <https://www.socialstyrelsen.se/statistik-och-data/register/patientregistret/>
 
-Many records contain `BLANKED` code values. These values reflect values redacted by Socialstyrelsen because they were not part of the approved application.
+- **Official variable list:**  
+  <https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/dokument-webb/ovrigt/register-variabelforteckning-patientregistret.xlsx>
 
-**ICD sources and notes.** In‑house translations/mappings are used to assist interpretability. Please verify annotations independently. Selected references:  
-The National Board of Health and Welfare provides variable lists
-- ICD‑10‑SE TSV: https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/dokument-webb/klassifikationer-och-koder/icd-10-se.tsv  
-- ICD‑9‑SE (PDF): https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/dokument-webb/klassifikationer-och-koder/icd-9-klassifikation-av-sjukdomar-1987.pdf  
-- ICD‑9‑SE (XLS): https://www.socialstyrelsen.se/globalassets/sharepoint-dokument/dokument-webb/klassifikationer-och-koder/icd-9-klassifikation-av-sjukdomar-1987-ks87.xls
+- **Date of extraction:** 2025‑02‑25
+
+- **Notes:**
+      - The official variable names differ from those used internally within Avan. These original register names are shown under `Source variable name` in the table below.
+      - In addition to the variables originating from the register, Avan has enriched the dataset by deriving several convenience variables, such as clear‑text translations of medical code values at different hierarchical levels.

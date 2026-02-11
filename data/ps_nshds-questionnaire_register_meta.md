@@ -1,13 +1,19 @@
-This variabel list is an extract from the variabel list of the Swedish Health and Disease Study (NSHDS). It includes all variables from the VIP-Cohort (Västerbotten Intervention Program) and the MONICA-Cohort that are relevant for PREDICT. The name of the variables in this list are PREDICT variables, which can deviate from the original variabels used by NSHDS. The original variable names correspond to colname_silver in Avans´s internal codebook.
+This dataset is an extract from the **Northern Sweden Health and Disease Study (NSHDS)**. It includes all individuals in the PREDICT cohort who have corresponding NSHDS records.
 
-- If you wish to order NSHDS variables not included in PREDICT’s NSHDS variable selection, please visit the general information page on access to NSHDS samples and data.
-<https://www.umu.se/en/brs/provsamlingar-och-register/nshds/>
+- **Official site:**  
+  <https://www.umu.se/en/brs/provsamlingar-och-register/nshds/>
 
-- For detailed information on the NSHDS Cohort take a look at the 2025 published cohort profile:
-<https://academic.oup.com/ije/article/54/1/dyaf004/7997668>
+- **Date of extraction:** 2024‑02‑01
 
-- More information on the descriptive statistics of NSHDS:
-<https://www.umu.se/en/brs/research/descriptive-statistics/>
+- **Notes:**
+    - The official NSHDS variable names differ from those used internally within Avan. These original names are shown under `Source variable name` in the table below.
+    - This data extract includes only a subset of NSHDS variables (VIP and MONICA). If you wish to order NSHDS variables not included here, please refer to the NSHDS access information at the link above.
+    - **Further descriptions of NSHDS:**
+            - [Cohort profile (2025)](https://academic.oup.com/ije/article/54/1/dyaf004/7997668)
+            - [Descriptive statistics](https://www.umu.se/en/brs/research/descriptive-statistics/)
 
+!!! note "Important"
+    NSHDS maintains its own variable [order form](nshds-orderform.docx), which provides detailed variable descriptions and context and is widely used in NSHDS‑related projects. To order variables from this dataset, you may choose either the selection tool below or the official NSHDS order form, depending on your preference.
 
-
+    - If you use the selection tool, all chosen variables across data sources are included in a **single CSV file**, which you submit with your application.  
+    - If you use the official NSHDS order form, please submit **both** the generated CSV file **and** the completed [NSHDS order form](nshds-orderform.docx).

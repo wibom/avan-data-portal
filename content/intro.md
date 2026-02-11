@@ -1,15 +1,38 @@
-# Welcome to PREDICT — Avan data portal
+# Welcome to **PREDICT — Avan Data Portal**
+Use this portal to explore available datasets, search variables, and build a CSV-ready
+selection list.
 
-Use this portal to explore available datasets, search variables, and build a CSV-ready order list.
+## About PREDICT
+PREDICT is a research infrastructure at Umeå University that enables secure access to
+high‑quality health and registry data for research, with a focus on prevention,
+diagnostics, and precision medicine. The Avan Data Portal is part of this effort,
+providing researchers with a structured and transparent way to explore available
+variables.
 
-> This introduction is sourced from `content/intro.md`. Edit this file to update the text above the datasets.
+Learn more about the project here:  
+<https://www.umu.se/forskning/infrastruktur/predict/>
 
-**How to use the Avan Data Portal?**
-The Avan Data Portal provides an overview of the variables available in the Avan data lake. It is possible to view all available variables including their descriptions, select the variables of interest, and export the selection. It is important to be aware that the selected variables must be relevant according to the project description in the approved ethics application.
+For questions or support, please contact: <research.predict@umu.se>
 
-At the moment, it is possible to choose variables from five national registries (National Cancer Register, National Cause of Death Register, National In‑Patient Register, National Out‑Patient Register, National Prescribed Drug Register) and from the Northern Sweden Health and Disease Study (NSHDS). NSHDS variables are a selection made for PREDICT and only include variables from VIP and MONICA.
+## How to use the Avan Data Portal
+The Avan Data Portal provides an overview of the variables available in the Avan data
+lake. You can browse variables, read their descriptions, select the ones you need, and
+export your final selection as a CSV file. Please ensure that all selected variables align
+with the project description in your approved ethics application.
 
-The Avan Data Portal is for now not an online service. The variables are chosen by clicking. All selected variables end up on a list (CSV file). When the variable selection is complete, the CSV file must be exported manually (and sent to research.predict@umu.se.
-**NOTE!** **The selection persists only during the active session.** If you interrupt the session, you will have to redo the entire selection.
+The portal currently includes variables from several national and regional data sources.
+*Additional datasets may be added in future updates* as the PREDICT infrastructure
+continues to grow.
 
-- Give Excel-file for off-line selection.
+**Instructions**
+
+- Select variables by clicking; all chosen variables are added to your list.
+- When your selection is complete, export it using the `"Download CSV"` button. This
+  downloads the CSV file to your computer.
+- Include the CSV file with your data application submitted to <research.predict@umu.se>.
+
+!!! warning "Important"
+    This version of the portal is a temporary, simplified release. Your selection is only
+    saved for the current session. *If you leave, close, or refresh the page, you will
+    need to redo your selections.*
+
