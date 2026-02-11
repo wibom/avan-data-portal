@@ -538,7 +538,13 @@ def load_intro_html() -> str:
 
 def load_footer_html() -> str:
     if FOOTER_MD.exists():
-        return md_to_html_intro(FOOTER_MD.read_text(encoding="utf-8"))
+        html = md_to_html_intro(FOOTER_MD.read_text(encoding="utf-8"))
+        # Inject logo if it exists and footer references it as [LOGO]
+        logo_uri = load_logo_data_uri()
+        if logo_uri and "[LOGO]" in html:
+            logo_html = f'<img src="{logo_uri}" alt="Logo" style="height:64px;width:auto;display:block;margin-bottom:1rem;" />'
+            html = html.replace("[LOGO]", logo_html)
+        return html
     return ""
 
 # -------- Provenance --------

@@ -1,7 +1,7 @@
-# PREDICT — Avan Data Portal
+[LOGO]
 
-Maintained by the Avan data team.
-
-Contact: data-portal@example.org
+<small>
+Contact: <research.predict@umu.se>
 
 © Avan 2026
+</small>
