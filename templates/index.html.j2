@@ -83,6 +83,8 @@
     .toc a { color: var(--muted); text-decoration: none; font-size: 0.95rem; }
     .toc a.active { color: var(--brand-primary); font-weight: 700; }
     @media(max-width:900px){ .toc { display: none; } }
+    .site-footer { background: #000; color: #fff; padding: 2rem 1rem; }
+    .site-footer a { color: #fff; text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -561,6 +563,15 @@
 
   })();
   </script>
+
+  <footer>
+  </footer>
+
+  {% if footer_html %}
+  <div class="site-footer">
+    <div class="container">{{ footer_html | safe }}</div>
+  </div>
+  {% endif %}
 
   <footer>
     <details>

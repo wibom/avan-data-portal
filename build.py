@@ -46,6 +46,7 @@ OUTPUT_HTML = DIST_DIR / "variables_browser.html"
 
 VARIABLES_CONFIG = CONFIG_DIR / "variables_config.yaml"
 INTRO_MD = CONTENT_DIR / "intro.md"
+FOOTER_MD = CONTENT_DIR / "footer.md"
 
 # -------- Utilities --------
 
@@ -527,6 +528,12 @@ def load_intro_html() -> str:
         return md_to_html_intro(INTRO_MD.read_text(encoding="utf-8"))
     return ""
 
+
+def load_footer_html() -> str:
+    if FOOTER_MD.exists():
+        return md_to_html_intro(FOOTER_MD.read_text(encoding="utf-8"))
+    return ""
+
 # -------- Provenance --------
 
 def format_provenance(prov_per_dataset: Dict[str, List[Tuple[str, str]]]) -> str:
@@ -547,6 +554,8 @@ def format_provenance(prov_per_dataset: Dict[str, List[Tuple[str, str]]]) -> str
         supplemental_files.append(VARIABLES_CONFIG)
     if INTRO_MD.exists():
         supplemental_files.append(INTRO_MD)
+    if FOOTER_MD.exists():
+        supplemental_files.append(FOOTER_MD)
 
     # Per-dataset YAMLs and MDs
     for ds_id in sorted(prov_per_dataset.keys()):
@@ -602,13 +611,13 @@ def render_html(datasets: List[Dict[str, Any]], intro_html: str, provenance_text
         autoescape=select_autoescape(["html", "xml"])
     )
     tmpl = env.get_template(TEMPLATE_NAME)
-
     data_json = json.dumps(datasets, ensure_ascii=False, separators=(",", ":"))
 
     html = tmpl.render(
         data_json=data_json,
         intro_html=intro_html,
-        provenance=provenance_text
+        provenance=provenance_text,
+        footer_html=load_footer_html()
     )
     return html
 
