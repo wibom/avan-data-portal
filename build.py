@@ -25,6 +25,8 @@ import json
 import re
 import fnmatch
 import hashlib
+import subprocess
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional
 
@@ -608,6 +610,31 @@ def load_datasets_config() -> List[Dict[str, Any]]:
 
 # -------- Template rendering --------
 
+def get_git_sha() -> str:
+    """
+    Get the current git commit SHA. Returns empty string if not a git repo
+    or if git is not available.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(ROOT_DIR),
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return ""
+
+def get_build_date() -> str:
+    """
+    Get the current build date and time in ISO format, rounded to whole seconds.
+    """
+    return datetime.now().replace(microsecond=0).isoformat()
+
 def render_html(datasets: List[Dict[str, Any]], intro_html: str, provenance_text: str) -> str:
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
@@ -619,7 +646,8 @@ def render_html(datasets: List[Dict[str, Any]], intro_html: str, provenance_text
     html = tmpl.render(
         data_json=data_json,
         intro_html=intro_html,
-        provenance=provenance_text,
+        git_sha=get_git_sha(),
+        build_date=get_build_date(),
         footer_html=load_footer_html(),
         logo_data_uri=load_logo_data_uri()
     )

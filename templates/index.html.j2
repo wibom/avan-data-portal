@@ -572,6 +572,17 @@
   </script>
 
   <footer>
+    <details style="color: var(--muted); font-size: 0.85rem; margin-top: 2rem;">
+      <summary style="cursor: pointer; font-weight: 600; user-select: none;">Build info</summary>
+      <div style="margin-top: 0.5rem;">
+        {% if build_date %}
+        <p style="margin: 0.25rem 0;"><strong>Build date:</strong> {{ build_date }}</p>
+        {% endif %}
+        {% if git_sha %}
+        <p style="margin: 0.25rem 0;"><strong>Git SHA:</strong> <code style="font-family: monospace; background: var(--soft); padding: 0 0.25rem; border-radius: 4px;">{{ git_sha[:8] }}</code></p>
+        {% endif %}
+      </div>
+    </details>
   </footer>
 
   {% if footer_html %}
@@ -579,14 +590,6 @@
     <div class="container">{{ footer_html | safe }}</div>
   </div>
   {% endif %}
-
-  <footer>
-    <details>
-      <summary>Provenance</summary>
-      <p>Generated from YAML sources. Input files and hash:</p>
-      <pre style="white-space: pre-wrap; word-break: break-word;">{{ provenance | e }}</pre>
-    </details>
-  </footer>
 
 </body>
 </html>
