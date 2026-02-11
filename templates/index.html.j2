@@ -503,13 +503,36 @@
       // Build dataset index for navigation and TOC
       const dsIndex = state.datasets.map(d=>({id:d.id,title:d.title||d.id,subtitle:d.subtitle||''}));
 
+      // When a TOC link is clicked we want to temporarily suppress
+      // IntersectionObserver-driven active-state updates so the clicked
+      // link remains highlighted during the smooth scroll animation.
+      let _ignoreObserver = false;
       function jumpToDataset(id){
         if(!id) return;
         const el = document.getElementById(id); if(!el) return;
         const topBar = document.querySelector('.cart');
         const offset = topBar ? Math.ceil(topBar.getBoundingClientRect().height) + 8 : 16;
-        const top = el.getBoundingClientRect().top + window.scrollY - offset;
-        window.scrollTo({ top, behavior: 'smooth' });
+        let target = el.getBoundingClientRect().top + window.scrollY - offset;
+        // Clamp to valid scroll range so bottom-most links behave consistently
+        const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+        target = Math.max(0, Math.min(target, maxScroll));
+        // Suppress observer updates for the duration of the scroll animation
+        _ignoreObserver = true;
+        // Clear suppression slightly after the expected scroll duration
+        setTimeout(()=>{ _ignoreObserver = false; }, 700);
+
+        window.scrollTo({ top: target, behavior: 'smooth' });
+
+        // Immediately mark the clicked link active so it appears selected
+        // even if the IntersectionObserver hasn't fired yet.
+        try{
+          const toc = document.getElementById('sidebar-toc');
+          if(toc){
+            toc.querySelectorAll('a').forEach(x=>x.classList.remove('active'));
+            const link = toc.querySelector(`a[data-target-id="${id}"]`);
+            if(link) link.classList.add('active');
+          }
+        }catch(e){ /* noop */ }
       }
 
       // Populate sidebar TOC and highlight on scroll
@@ -526,6 +549,7 @@
       // Highlight active section using IntersectionObserver
       try{
         const observer = new IntersectionObserver((entries)=>{
+          if (_ignoreObserver) return; // respect suppression window
           entries.forEach(entry=>{
             const id = entry.target.id; const link = toc.querySelector(`a[data-target-id="${id}"]`);
             if(entry.isIntersecting){ toc.querySelectorAll('a').forEach(x=>x.classList.remove('active')); if(link) link.classList.add('active'); }
