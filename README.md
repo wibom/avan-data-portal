@@ -1,414 +1,345 @@
-# PREDICT — Avan Data Portal (static build)
+# PREDICT — Avan Data Portal
 
-This project builds a **single, self-contained HTML file** that lets users
-**search, browse, and select variables** per dataset and **download selections as CSV**.
+Builds a self-contained **HTML file** and **Excel file** for users to explore datasets, search variables, and download selections.
 
-The build system is deterministic: repeated builds with the same inputs produce
-byte-identical output.
+The build is **deterministic**: same inputs → identical output (supports reproducibility).
 
 ---
 
-## Quick start
+## Quick Start
 
-### 1. Clone the repository
-
-```bash
-git clone <repo-url>
-cd <repo-name>
-```
-
-### 2. Create and activate a virtual environment
+### 1. Create and activate a virtual environment
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
+source .venv/bin/activate  # macOS/Linux
 ```
 
-Activate it:
+**Windows:** Use `.venv\Scripts\Activate.ps1` (PowerShell) or `.venv\Scripts\activate.bat` (cmd)
 
-**macOS / Linux**
-```bash
-source .venv/bin/activate
-```
-
-**Windows (PowerShell)**
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-> Note:
-> The `.venv/` directory is intentionally **not** tracked in Git.
-> Each developer creates their own local virtual environment.
-
-### 3. Install dependencies
+### 2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Build the static HTML
+### 3. Build
 
 ```bash
 python build.py
 ```
 
-### 5. Open the result
+**Outputs:**
+- `dist/variables_browser.html` — Web interface
+- `dist/variables_browser.xlsx` — Excel file for offline selection
 
-Open the generated file in your browser:
+---
 
-```text
-dist/variables_browser.html
+## How It Works
+
+**Input:** YAML/Markdown files in `data/`, `config/`, and `content/`  
+**Process:** `build.py` discovers datasets, normalizes variables, applies rules, renders HTML/Excel  
+**Output:** Self-contained HTML + formatted Excel file in `dist/`
+
+### Build Pipeline
+
+1. Discover datasets from `data/*_register_meta.yaml` files
+2. Load codebooks from `data/*_register_codebook.yaml`
+3. Normalize variables (standardize field names and types)
+4. Apply ignore/filter rules from `config/variables_config.yaml`
+5. Build synthetic groups from regex patterns
+6. Load dataset descriptions from Markdown or YAML
+7. Render HTML via Jinja2 template
+8. Export Excel workbook with formatted sheets per dataset
+9. Write outputs to `dist/`
+
+---
+
+## Virtual Environment
+
+### Create
+
+```bash
+python3 -m venv .venv
 ```
 
-You can double-click the file or open it from the command line.
+### Activate
 
----
-
-## Requirements
-
-- Python 3.x
-- Dependencies are defined in `requirements.txt`
-
----
-
-## Repository hygiene
-
-The following files and directories are intentionally excluded from version control:
-
-- `.venv/` (local Python virtual environment)
-- `__pycache__/`
-- `.pyc` files
-
-Only source code, configuration, and input data are tracked.
-
----
-
-## Source data
-
-Place dataset files in the `data/` folder, using the following naming scheme.
-
-### Required files (must be present)
-
-| Purpose                   | File pattern                   | Required |
-|---------------------------|--------------------------------|----------|
-| Dataset metadata          | `*_register_meta.yaml`         | Yes      |
-| Dataset variable codebook | `*_register_codebook.yaml`     | Yes      |
-
-### Optional files
-
-| Purpose                         | File pattern               | Required |
-|--------------------------------|----------------------------|----------|
-| Dataset description (Markdown) | `*_register_meta.md`       | No (recommended) |
-
----
-
-## Dataset discovery rules
-
-A dataset **exists only if** the file:
-
-```text
-data/<dataset>_register_meta.yaml
+**macOS / Linux:**
+```bash
+source .venv/bin/activate
 ```
 
-exists.
-
-Given dataset ID `<dataset>`, the builder then looks for:
-
-```text
-data/<dataset>_register_codebook.yaml   # required: variables
-data/<dataset>_register_meta.md         # optional: markdown description
+**Windows (PowerShell):**
+```powershell
+.venv\Scripts\Activate.ps1
 ```
 
-Dataset descriptions are resolved in this order:
+**Windows (cmd):**
+```cmd
+.venv\Scripts\activate.bat
+```
 
-1. `<dataset>_register_meta.md` (Markdown)
-2. `info:` list inside `<dataset>_register_meta.yaml`
-3. (none)
+### Update dependencies
+
+After editing `requirements.txt`:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Deactivate
+
+```bash
+deactivate
+```
+
+> **Note:** `.venv/` is gitignored. Each developer maintains their own environment.
 
 ---
 
-## Codebook format
+## File Structure
 
-Codebook YAML files must contain a **top-level mapping**, where each key is a
-variable name.
-
-Example:
-
-```yaml
-birthdate:
-  colname_silver: "birthdate"
-  labels: "Date of birth"
-  coltypes: "date"
-
-sex:
-  colname_silver: "sex"
-  labels: "Sex"
-  coltypes: "character"
-  categories:
-    - "demography"
-```
-
-Common supported fields:
-
-- `colname_silver` → displayed as “Source variable name”
-- `labels` / `label` → used as the human-readable label
-- `coltypes` / `dtype` / `class` → displayed as “Type”
-- `categories` → list or single string
-- `tags` → string or list
-- `notes` → optional
-
-All fields are normalized automatically.
+| Folder/File | Purpose |
+|-------------|---------|
+| `data/` | Dataset metadata (YAML) and variable codebooks |
+| `config/` | Rules for filtering, grouping, and dataset ordering |
+| `content/` | Static content: intro, footer, logo |
+| `templates/` | Jinja2 HTML template |
+| `build.py` | Build script |
+| `dist/` | Output directory (gitignored; auto-created) |
 
 ---
 
-## How to add a new dataset
+## Updating the Portal
 
-To introduce a dataset named `foo`, add **at least two files**:
+### Adding a dataset
 
-### 1. Required: metadata YAML
+A dataset consists of required and optional files in `data/`:
 
-```text
-data/foo_register_meta.yaml
-```
+**Required:**
+- `<dataset>_register_meta.yaml` — Dataset metadata (title, subtitle, info)
+- `<dataset>_register_codebook.yaml` — Variable definitions
 
-Minimal example:
+**Optional:**
+- `<dataset>_register_meta.md` — Markdown description (overrides YAML info field)
 
+**Example: Add dataset `foo`**
+
+1. Create `data/foo_register_meta.yaml`:
 ```yaml
 title: Foo dataset
-subtitle: Demonstration dataset
+subtitle: Example
 ```
 
-### 2. Required: codebook YAML
-
-```text
-data/foo_register_codebook.yaml
-```
-
-Minimal example:
-
+2. Create `data/foo_register_codebook.yaml`:
 ```yaml
 foo_var:
   colname_silver: "foo_var"
   labels: "Example variable"
   coltypes: "character"
+  categories: ["example"]
+  notes: "Optional description"
 ```
 
-### 3. Optional: Markdown description
-
-```text
-data/foo_register_meta.md
-```
-
-Example:
-
+3. Optionally, add `data/foo_register_meta.md`:
 ```markdown
-# Foo dataset
+# Foo Dataset
 
-This is an example dataset added to the portal.
+Markdown description with **formatting**, links, and admonitions.
+
+!!! note
+    Important info here.
 ```
 
-> Important:
-> A dataset will **not** be discovered unless
-> `foo_register_meta.yaml` exists.
-> The Markdown file alone is insufficient.
-
-### After adding files
-
+4. Rebuild:
 ```bash
 python build.py
 ```
 
-You should see output like:
+### Variable fields (codebook)
 
-```text
-Assembled dataset: foo variables: 1
+Common YAML fields are normalized automatically:
+
+| YAML Field | Display Column | Purpose |
+|-----------|---|---|
+| `colname_silver` | Source variable name | Original database variable |
+| `labels`/`label` | Label | Human-readable name |
+| `coltypes`/`dtype`/`class` | Type | Data type |
+| `categories` | Categories | String or list of category names |
+| `tags` | Tags | String or list (for filtering) |
+| `notes` | Notes | Optional description |
+
+### Filtering variables: `config/variables_config.yaml`
+
+Hide unwanted variables or create synthetic groups:
+
+```yaml
+ignore:
+  names:
+    - var_to_hide
+  name_patterns:
+    - "^temp_.*"           # Hide variables starting with temp_
+  tags:
+    - "internal"           # Hide variables tagged "internal"
+  categories:
+    - "deprecated"         # Hide variables in "deprecated" category
+
+groups:
+  demographics:
+    pattern: "^(age|sex|birth).*"
+    label: "Demographics"
+    notes: "Demographic variables"
+    priority: 10
+    category_strategy: "union"  # "union" | "intersection" | "override"
 ```
 
-…and the dataset will appear in the UI.
+### Ordering datasets: `config/datasets_config.yaml`
 
----
-
-## Display rules
-
-- Variables show:
-  - Label
-  - Variable name (YAML key)
-  - Source variable name (`colname_silver`)
-  - Notes
-
-- Dataset descriptions support:
-  - Markdown formatting
-  - Inline code
-  - Links
-  - Light HTML tags
-  - **Admonitions** (see section below)
-
-- Search matches:
-  - Label
-  - Variable name
-  - Notes
-  - Group member names
-
-- Groups are created via patterns in `config/variables_config.yaml`.
-
----
-
-## Markdown features: Admonitions
-
-Admonitions (callouts/alerts) can be used in dataset descriptions and the intro page
-using the `!!!` syntax. They are rendered with colored left borders and styled backgrounds.
-
-### Supported admonition types
-
-```markdown
-!!! note
-    This is a note — for general information
-
-!!! warning
-    This is a warning — for cautions and important notices
-
-!!! danger
-    This is a danger alert — for critical warnings
-
-!!! tip
-    This is a tip — for helpful suggestions
-
-!!! info
-    This is info — for informational content
-
-!!! success
-    This is success — for positive outcomes
-
-!!! bug
-    This is a bug report
-
-!!! example
-    This is an example
-
-!!! quote
-    This is a quotation
-```
-
-### Customizing admonition titles
-
-By default, the title is the admonition type (e.g., "Warning", "Note"). To use a custom title:
-
-```markdown
-!!! warning "Custom Title"
-    This warning has a custom title instead of "Warning"
-```
-
-### Usage examples
-
-**In `content/intro.md`:**
-```markdown
-# Welcome
-
-This introduction can include admonitions.
-
-!!! note
-    This note will appear prominently in the intro section.
-```
-
-**In dataset descriptions (`data/*_register_meta.md`):**
-```markdown
-# Dataset title
-
-!!! warning
-    This dataset contains sensitive information and requires special access.
-
-Regular paragraph text continues here...
-```
-
-Each admonition type has a distinct color scheme: notes are blue, warnings are orange, dangers are red, tips are green, and so on.
-
----
-
-## Determinism
-
-The build is deterministic:
-
-- Input files processed in sorted order
-- No timestamps embedded
-- Identical inputs produce identical output HTML
-
----
-
-## Build Information
-
-The footer of the generated HTML contains an expandable "Build info" section that displays:
-
-- **Build date** — Timestamp (ISO format, rounded to whole seconds) of when the HTML was built
-- **Git SHA** — First 8 characters of the current git commit hash
-
-This supports traceability and quick identification of which version of the code was used to generate the portal.
-
-The git SHA allows you to check out the exact version of the source that produced the portal:
-
-```bash
-git checkout <full-sha-hash>  # Use the full 40-character hash
-```
-
----
-
-## Customization
-
-To adjust UI layout, styling, or behavior, edit:
-
-```text
-templates/index.html.j2
-```
-
-To create grouped variables or ignore variables, edit:
-
-```text
-config/variables_config.yaml
-```
-
-Rebuild afterwards:
-
-```bash
-python build.py
-```
-
-## Grouping & ordering datasets
-
-You can control how datasets are grouped and ordered in the generated
-HTML by adding a `config/datasets_config.yaml` file. The file should
-define an ordered list of groups, where each group contains a `heading`
-and a `datasets` list of dataset ids (the ids derived from filenames,
-e.g. `ps_cancer`). Example:
+Control dataset grouping and order in the UI:
 
 ```yaml
 groups:
-  - heading: "Cancer & Registers"
+  - heading: "Cancer & Health"
     datasets:
       - ps_cancer
       - ps_cause-of-death
-  - heading: "Patient Events"
+  - heading: "Patient Data"
     datasets:
       - ps_patient-in
       - ps_patient-out
 ```
 
-Behavior:
-- Datasets listed in the config are validated against the files discovered
-  in `data/`; missing ids produce a warning during `python build.py` and
-  are ignored.
-- Configured groups are rendered in the order listed. Any datasets not
-  mentioned in the config are appended in an "Other datasets" section,
-  sorted alphabetically.
-- If `config/datasets_config.yaml` is absent, the build preserves the
-  previous (legacy) flat ordering: all discovered datasets are shown in
-  alphabetical order.
+Datasets listed here appear in order. Datasets not listed go to "Other datasets" section.  
+If this file is absent, all discovered datasets are listed alphabetically.
 
+### Static content: `content/` folder
+
+Customize the portal interface:
+
+- **`intro.md`** — Portal introduction and usage instructions (displayed before datasets)
+- **`footer.md`** — Footer text, links, and legal info (supports Markdown)
+- **`logo.png`** — Optional logo (embedded as data URI in footer if present)
+
+Rebuild after changes:
+```bash
+python build.py
+```
+
+#### Supported Markdown
+
+In all Markdown files:
+- **Bold**, *italic*, `code` formatting
+- Links: `[text](url)`
+- Lists, tables
+- Admonitions (see below)
+
+#### Admonitions
+
+Highlighted callout boxes. Available types:
+
+```markdown
+!!! note
+    General information
+
+!!! warning
+    Cautions and important notices
+
+!!! danger
+    Critical warnings
+
+!!! tip
+    Helpful suggestions
+
+!!! info / success / bug / example / quote
+    Other admonition types
+```
+
+Custom titles:
+```markdown
+!!! warning "Custom Title"
+    Content here
+```
 
 ---
 
-## Clean rebuild
+## Excel Export
 
-If you want to force a clean rebuild:
+The Excel file (`variables_browser.xlsx`) has one sheet per dataset with columns:
+
+| Column | Purpose |
+|--------|---------|
+| Selection | Empty; users mark chosen variables with "x" |
+| Label | Human-readable variable name |
+| Notes | Variable description |
+| Variable name | YAML key (unique identifier) |
+| Source variable name | Original database variable name |
+| Categories | Variable categories |
+| Grouped | Yes/No (synthetic group variable) |
+| Members | For groups: member variable names |
+
+---
+
+## Template Customization
+
+Edit the HTML template to change layout, styling, or behavior:
+
+```text
+templates/index.html.j2
+```
+
+Rebuild:
+```bash
+python build.py
+```
+
+---
+
+## Deterministic Builds
+
+Reproducibility is guaranteed:
+- Input files are always processed in sorted order
+- No timestamps or random values embedded
+- Same inputs produce byte-identical output
+
+---
+
+## Build Information
+
+The generated HTML includes an expandable footer section with:
+- **Build date** — ISO timestamp when the portal was built
+- **Git SHA** — Current commit hash (if in a git repo)
+
+Check out the exact version used:
+```bash
+git checkout <full-sha-hash>
+```
+
+---
+
+## Clean Rebuild
+
+Force a full rebuild:
 
 ```bash
 rm -rf dist/
 python build.py
+```
+
+---
+
+## Dependencies
+
+Managed via `requirements.txt`:
+```
+pyyaml==6.0.1
+jinja2==3.1.4
+markdown==3.6
+pymdown-extensions==10.5
+openpyxl==3.1.2
+```
+
+Update with:
+```bash
+pip install -r requirements.txt
 ```
