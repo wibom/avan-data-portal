@@ -39,7 +39,7 @@ continues to grow.
   downloads the CSV file to your computer.
 - Include the CSV file with your data application submitted to <research.predict@umu.se>.
 
-!!! warning "Important"
+!!! note "Important"
     This version of the portal is a temporary, simplified release. Your selection is only
     saved for the current session. *If you leave, close, or refresh the page, you will
     need to redo your selections.*
