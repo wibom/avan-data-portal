@@ -19,8 +19,8 @@
     }
     * { box-sizing: border-box; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin:0; color:var(--text); background:var(--bg); }
-    header { background: var(--brand-primary); color: white; padding: 1.5rem 1rem; }
-    header .container { max-width: 1200px; margin: 0 auto; }
+    header { background: var(--brand-primary); color: white; padding: 1.5rem 0; }
+    header .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
     h1 { margin: 0; font-weight: 700; letter-spacing: 0.3px; }
     .subtitle { margin-top: 0.25rem; color: #dfe7f2; }
     main { max-width: 1200px; margin: 1.25rem auto; padding: 0 1rem 3rem; }
@@ -104,16 +104,9 @@
 </head>
 <body>
   <header>
-    <div class="container" style="display:flex;align-items:center;gap:1rem;">
-      <div class="brand-logo" style="flex:0 0 auto;">
-        {% if logo_data_uri %}
-        <img src="{{ logo_data_uri }}" alt="Logo" style="height:64px;width:auto;display:block;" />
-        {% endif %}
-      </div>
-      <div class="brand-title" style="flex:1;">
-        <h1 style="margin:0">PREDICT</h1>
-        <div class="subtitle">Avan data portal</div>
-      </div>
+    <div class="container">
+      <h1 style="margin:0">PREDICT</h1>
+      <div class="subtitle">Avan data portal</div>
     </div>
   </header>
 
