@@ -13,7 +13,9 @@ This dataset is an extract from the **Northern Sweden Health and Disease Study (
             - [Descriptive statistics](https://www.umu.se/en/brs/research/descriptive-statistics/)
 
 !!! note "Important"
-    NSHDS maintains its own variable [order form](nshds-orderform.docx), which provides detailed variable descriptions and context and is widely used in NSHDS‑related projects. To order variables from this dataset, you may choose either the selection tool below or the official NSHDS order form, depending on your preference.
+    NSHDS maintains its own variable order forms (in Swedish and English), which provide detailed variable descriptions and context and are widely used in NSHDS‑related projects. To order variables from this dataset, you may choose either the selection tool below or the official NSHDS order form, depending on your preference.
 
     - If you use the selection tool, all chosen variables across data sources are included in a **single CSV file**, which you submit with your application.  
-    - If you use the official NSHDS order form, please submit **both** the generated CSV file **and** the completed [NSHDS order form](nshds-orderform.docx).
+    - If you use the official NSHDS order form, please submit **both** the generated CSV file **and** the completed order form:
+        - [English version](PREDICT_NSHDS_vip-mo-variableslist_20260121.docx)
+        - [Swedish version (Svenska)](PREDICT_NSHDS_vip-mo_variabellista20260121.docx)
