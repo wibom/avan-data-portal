@@ -54,6 +54,7 @@ VARIABLES_CONFIG = CONFIG_DIR / "variables_config.yaml"
 INTRO_MD = CONTENT_DIR / "intro.md"
 FOOTER_MD = CONTENT_DIR / "footer.md"
 LOGO_PATH = CONTENT_DIR / "logo.png"
+STATIC_DIR = ROOT_DIR / "static"
 
 # -------- Utilities --------
 
@@ -857,6 +858,19 @@ def load_logo_data_uri() -> str:
     b64 = base64.b64encode(data).decode('ascii')
     return f"data:{mime};base64,{b64}"
 
+def copy_static_files() -> None:
+    """
+    Copy static files (e.g., Word documents) from ./static to ./dist/
+    """
+    if not STATIC_DIR.exists():
+        return
+    for src in STATIC_DIR.iterdir():
+        if src.is_file():
+            dst = DIST_DIR / src.name
+            import shutil
+            shutil.copy2(src, dst)
+            print(f"✓ Copied {src.name} to dist/")
+
 # -------- Build entrypoint --------
 
 def build() -> None:
@@ -942,6 +956,9 @@ def build() -> None:
     # Export to Excel (file name used above for the intro link)
     excel_output = DIST_DIR / excel_filename
     export_to_excel(datasets, excel_output)
+
+    # Copy static files (Word docs, etc.) to dist/
+    copy_static_files()
 
 
 # -------- CLI --------
