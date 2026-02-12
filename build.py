@@ -33,6 +33,9 @@ from typing import Dict, List, Tuple, Any, Optional
 import yaml  # PyYAML
 import markdown  # Markdown processing
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 
 # -------- Paths --------
 ROOT_DIR = Path(__file__).resolve().parent
@@ -664,6 +667,169 @@ def render_html(datasets: List[Dict[str, Any]], intro_html: str, provenance_text
     return html
 
 
+# -------- Excel export --------
+
+def export_to_excel(datasets_raw: List[Dict[str, Any]], output_path: Path) -> None:
+    """
+    Export processed variable lists to Excel (.xlsx).
+    Each dataset gets its own sheet with columns (in desired order):
+    - Selection: empty column for users to mark selected variables
+    - Label: display label
+    - Notes: description/notes
+    - Variable name: variable/group name (previously "Name")
+    - Source variable name: source variable name (previously "Source")
+    - Categories: comma-separated list of categories
+    - Grouped: Yes/No if this is a synthetic group variable
+    - Members: for groups, comma-separated list of member variable names
+
+    Args:
+        datasets_raw: The raw datasets list (as assembled in build()).
+                     Can be a flat list or a list of grouped datasets with "heading" keys.
+        output_path: Path where the Excel file should be written.
+    """
+    if not datasets_raw:
+        print("Warning: No datasets to export to Excel.")
+        return
+
+    wb = Workbook()
+    wb.remove(wb.active)  # Remove default sheet
+
+    # Define styles for headers
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    border = Border(
+        left=Side(style="thin"),
+        right=Side(style="thin"),
+        top=Side(style="thin"),
+        bottom=Side(style="thin")
+    )
+
+    # Extract flat list of datasets from potentially grouped structure
+    flat_datasets: List[Dict[str, Any]] = []
+    for item in datasets_raw:
+        if isinstance(item, dict):
+            # Check if this is a group object (has 'heading' and 'datasets' keys)
+            if "heading" in item and "datasets" in item:
+                # This is a grouped structure; extract the datasets
+                for ds in item.get("datasets", []):
+                    if isinstance(ds, dict):
+                        flat_datasets.append(ds)
+            elif "id" in item and "variables" in item:
+                # This is a standalone dataset
+                flat_datasets.append(item)
+
+    # Create a sheet for each dataset
+    for dataset in flat_datasets:
+        ds_id = dataset.get("id", "unknown")
+        ds_title = dataset.get("title", ds_id)
+        variables = dataset.get("variables", [])
+
+        # Sanitize sheet name (Excel has character and length restrictions)
+        sheet_name = _sanitize_sheet_name(ds_title)
+
+        ws = wb.create_sheet(title=sheet_name)
+
+        # Define column headers (ordered to match HTML tables more closely)
+        headers = [
+            "Selection",
+            "Label",
+            "Notes",
+            "Variable name",
+            "Source variable name",
+            "Categories",
+            "Grouped",
+            "Members",
+        ]
+
+        # Write headers
+        for col_num, header_text in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.value = header_text
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = border
+
+        # Write variable rows
+        for row_num, var in enumerate(variables, 2):
+            if not isinstance(var, dict):
+                continue
+
+            var_name = var.get("name", "")
+            var_label = var.get("label", "")
+            var_notes = var.get("notes", "")
+            var_source = var.get("source", "")
+            var_categories = var.get("categories", [])
+            is_group = var.get("is_group", False)
+            members = var.get("members", [])
+
+            # Format lists as comma-separated strings
+            categories_str = ", ".join(var_categories) if isinstance(var_categories, list) else str(var_categories)
+            members_str = ", ".join(members) if isinstance(members, list) else str(members)
+
+            # Build row data in the new order; selection left blank for user input
+            row_data = [
+                "",  # Selection
+                var_label,
+                var_notes,
+                var_name,
+                var_source,
+                categories_str,
+                "Yes" if is_group else "No",
+                members_str,
+            ]
+
+            # Write row data
+            for col_num, cell_value in enumerate(row_data, 1):
+                cell = ws.cell(row=row_num, column=col_num)
+                cell.value = cell_value
+                cell.alignment = Alignment(vertical="top", wrap_text=True)
+                cell.border = border
+
+        # Auto-adjust column widths
+        _auto_adjust_column_widths(ws)
+
+    # Save workbook
+    wb.save(output_path)
+    print(f"✓ Wrote {output_path}")
+
+
+def _sanitize_sheet_name(name: str) -> str:
+    """
+    Sanitize a dataset title for use as an Excel sheet name.
+    Excel sheet names have restrictions:
+    - Max 31 characters
+    - Cannot contain: [ ] : * ? /
+    """
+    # Remove or replace problematic characters
+    sanitized = re.sub(r'[\[\]:*?/\\]', '', name)
+    # Limit to 31 characters
+    sanitized = sanitized[:31].strip()
+    # If empty after sanitization, use a default
+    if not sanitized:
+        sanitized = "Sheet"
+    return sanitized
+
+
+def _auto_adjust_column_widths(ws) -> None:
+    """
+    Auto-adjust column widths to fit content.
+    """
+    for column in ws.columns:
+        max_length = 0
+        column_letter = get_column_letter(column[0].column)
+        for cell in column:
+            try:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+            except Exception:
+                pass
+        # Set column width with some padding
+        adjusted_width = min(max_length + 2, 50)  # Cap at 50 to keep readable
+        ws.column_dimensions[column_letter].width = adjusted_width
+
+
 def load_logo_data_uri() -> str:
     """
     If `content/logo.*` exists, return a base64 data URI for embedding.
@@ -766,6 +932,11 @@ def build() -> None:
     html = render_html(datasets, intro_html, provenance_text)
     OUTPUT_HTML.write_text(html, encoding="utf-8")
     print(f"✓ Wrote {OUTPUT_HTML}")
+
+    # Export to Excel
+    excel_output = DIST_DIR / "variables_browser.xlsx"
+    export_to_excel(datasets, excel_output)
+
 
 # -------- CLI --------
 
