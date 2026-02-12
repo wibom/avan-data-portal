@@ -927,14 +927,20 @@ def build() -> None:
             datasets = others
 
     intro_html = load_intro_html()
+    # Replace placeholder in intro HTML with a relative link to the Excel file
+    excel_filename = "variables_browser.xlsx"
+    if intro_html and "[EXCEL-SELECTIONS]" in intro_html:
+        excel_link_html = f'<a href="{excel_filename}">Download Excel file</a>'
+        intro_html = intro_html.replace("[EXCEL-SELECTIONS]", excel_link_html)
+
     provenance_text = format_provenance(prov)
 
     html = render_html(datasets, intro_html, provenance_text)
     OUTPUT_HTML.write_text(html, encoding="utf-8")
     print(f"✓ Wrote {OUTPUT_HTML}")
 
-    # Export to Excel
-    excel_output = DIST_DIR / "variables_browser.xlsx"
+    # Export to Excel (file name used above for the intro link)
+    excel_output = DIST_DIR / excel_filename
     export_to_excel(datasets, excel_output)
 
 

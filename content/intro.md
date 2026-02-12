@@ -36,3 +36,15 @@ continues to grow.
     saved for the current session. *If you leave, close, or refresh the page, you will
     need to redo your selections.*
 
+    --------------------------------------------------------------------------------------
+    **If you prefer to work offline** — and avoid the risk of losing your selections —
+    you can download an Excel file containing all available variables. This allows you to
+    complete your variable selection locally on your computer.
+
+    <!-- link to the Excel file is automatically entered at build time -->
+    
+    - ➜ *Download the Excel version of the variable list here:* [EXCEL-SELECTIONS]
+    - In the Excel file, mark your selected variables by adding an “x” in the “Selection”
+    column.
+    - When your selection is complete, attach the edited Excel file to your data application.
+
