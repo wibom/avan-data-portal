@@ -14,6 +14,10 @@ Learn more about the project here:
 
 For questions or support, please contact: <research.predict@umu.se>
 
+!!! danger "Secrecy"
+    All data are governed by GDPR and secrecy (§7 of the OSF or Chapter 24, §8 of the OSL).
+    All data applications are subject to documented secrecy examination.
+
 ## How to use the Avan Data Portal
 The Avan Data Portal provides an overview of the variables available in the Avan data
 lake. You can browse variables, read their descriptions, select the ones you need, and
