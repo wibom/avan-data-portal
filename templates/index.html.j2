@@ -197,6 +197,53 @@
       return markdownToInlineHtml(input);
     }
 
+    // Create a notes toggle for a given preview element and full text.
+    function createNotesToggleFor(previewDiv, fullText){
+      if (!previewDiv || previewDiv.parentElement.querySelector('.var-notes-toggle')) return;
+      const notesContainer = previewDiv.parentElement;
+      const fullDiv = document.createElement('div');
+      fullDiv.className = 'var-notes-full';
+      fullDiv.style.display = 'none';
+      fullDiv.textContent = fullText || '';
+
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'var-notes-toggle';
+      toggleBtn.textContent = 'More\u2026';
+
+      let isExpanded = false;
+      toggleBtn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        isExpanded = !isExpanded;
+        if (isExpanded) {
+          previewDiv.style.display = 'none';
+          fullDiv.style.display = 'block';
+          toggleBtn.textContent = 'Less';
+        } else {
+          previewDiv.style.display = '-webkit-box';
+          fullDiv.style.display = 'none';
+          toggleBtn.textContent = 'More\u2026';
+        }
+      });
+
+      // Ensure preview shows clamped style
+      previewDiv.style.display = '-webkit-box';
+      notesContainer.appendChild(fullDiv);
+      notesContainer.appendChild(toggleBtn);
+    }
+
+    function runDeferredNotesMeasurement(){
+      requestAnimationFrame(()=>{
+        $all('.var-notes-preview').forEach(previewDiv => {
+          try{
+            if (previewDiv.parentElement.querySelector('.var-notes-toggle')) return; // already has toggle
+            if (previewDiv.scrollHeight > previewDiv.clientHeight + 1) {
+              createNotesToggleFor(previewDiv, previewDiv.dataset.fullText || previewDiv.textContent);
+            }
+          }catch(e){}
+        });
+      });
+    }
+
     function splitMarkdownParagraphs(md){
       // Split on blank lines into paragraphs; keep single newlines within a paragraph
       return String(md).trim().split(/\n\s*\n/);
@@ -328,6 +375,10 @@
             tbody.appendChild(renderRow(ds, v));
           });
 
+          // After rows are rendered, run a deferred pass to detect any
+          // visually-clamped previews the server didn't flag and add toggles.
+          runDeferredNotesMeasurement();
+
           const search = controls.querySelector('input[type="search"]');
           search.addEventListener('input', ()=>applyFilter(section, ds));
           ddl.addEventListener('change', ()=>applyFilter(section, ds));
@@ -348,6 +399,9 @@
             btn.setAttribute('aria-expanded', String(next));
             btn.textContent = next ? 'Hide variables' : 'Show variables';
             body.classList.toggle('is-collapsed', !next);
+            // When expanding, run deferred measurement to add toggles for
+            // previews that were rendered while the section was collapsed.
+            if (next) runDeferredNotesMeasurement();
           });
 
           app.appendChild(section);
@@ -382,22 +436,28 @@
 
         const previewDiv = document.createElement('div');
         previewDiv.className = 'var-notes-preview';
-        previewDiv.textContent = v.notes;
+        // Use server-provided preview when available to keep truncation
+        // logic deterministic and synchronized with the toggle state.
+        previewDiv.textContent = (v.notes_preview !== undefined && v.notes_preview !== null) ? v.notes_preview : v.notes;
+        // Store full text on the preview for deferred measurement fallback
+        previewDiv.dataset.fullText = v.notes || '';
         notesContainer.appendChild(previewDiv);
 
-        // If backend marked notes as long, render expandable full text + toggle
-        if (v.notes_is_long) {
-          const fullDiv = document.createElement('div');
-          fullDiv.className = 'var-notes-full';
-          fullDiv.style.display = 'none';
-          fullDiv.textContent = v.notes;
+        const fullDiv = document.createElement('div');
+        fullDiv.className = 'var-notes-full';
+        fullDiv.style.display = 'none';
+        fullDiv.textContent = v.notes;
+
+        const createToggle = () => {
+          // Apply clamping style to preview so it visually truncates
+          previewDiv.style.display = '-webkit-box';
 
           const toggleBtn = document.createElement('button');
           toggleBtn.className = 'var-notes-toggle';
           toggleBtn.textContent = 'More\u2026';
 
           let isExpanded = false;
-          toggleBtn.addEventListener('click', (e)=>{
+          toggleBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             isExpanded = !isExpanded;
@@ -414,7 +474,10 @@
 
           notesContainer.appendChild(fullDiv);
           notesContainer.appendChild(toggleBtn);
-        }
+        };
+
+        // Add toggle only when backend flagged the notes as long.
+        if (v.notes_is_long) createToggle();
       }
 
         // Make category chips clickable: clicking sets the category filter for this dataset

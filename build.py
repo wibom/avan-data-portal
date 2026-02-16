@@ -469,28 +469,62 @@ def assemble_dataset(
     # simple boolean at build time. Criteria:
     # - >= 3 explicit newlines -> long
     # - OR length > 240 characters -> long
-    def _notes_is_long(text: Optional[str]) -> bool:
+    def _notes_preview_and_flag(text: Optional[str]) -> Tuple[str, bool]:
+        """Return a preview string and a boolean indicating if the notes were shortened.
+
+        The preview always collapses internal whitespace. If the original text is
+        longer than the preview (we truncated it), return (preview, True). The
+        flag is therefore a direct indicator that a shortened preview was used
+        and should cause the client to render a toggle.
+        """
         if not text:
-            return False
-        # Consider shorter notes as "long" to enable expand/collapse
-        if isinstance(text, str) and text.count('\n') >= 2:
-            return True
-        if isinstance(text, str) and len(text) > 120:
-            return True
-        return False
+            return "", False
+        t = str(text)
+        # Full collapsed representation (single-line, whitespace collapsed)
+        collapsed_full = re.sub(r"\s+", " ", t).strip()
+
+        # Decide whether to create a shortened preview. Criteria mirror previous
+        # heuristics but we compute a preview in all cases so we can compare.
+        prefer_paragraph = True
+        if prefer_paragraph and '\n\n' in t:
+            snippet = t.split('\n\n', 1)[0]
+        else:
+            # Soft cap for preview length; preserve word boundary
+            # Use a conservative value so that previews which would visually
+            # wrap/clamp in the browser are marked as shortened and get a toggle.
+            N = 120
+            if len(collapsed_full) <= N:
+                snippet = collapsed_full
+            else:
+                cut = collapsed_full.rfind(' ', 0, N)
+                if cut == -1:
+                    cut = N
+                snippet = collapsed_full[:cut]
+
+        preview = re.sub(r"\s+", " ", snippet).strip()
+        shortened = preview != collapsed_full
+        if shortened and not preview.endswith('…'):
+            preview = preview.rstrip(' .') + '…'
+        return preview, shortened
 
     # Annotate all variables we expose in var_map_all and synthetic groups
     for name, info in var_map_all.items():
-        info['notes_is_long'] = _notes_is_long(info.get('notes'))
+        preview, shortened = _notes_preview_and_flag(info.get('notes'))
+        info['notes_preview'] = preview
+        info['notes_is_long'] = bool(shortened)
 
     for g in groups:
         # groups may have a notes field
         if isinstance(g, dict):
-            g['notes_is_long'] = _notes_is_long(g.get('notes'))
+            preview, shortened = _notes_preview_and_flag(g.get('notes'))
+            g['notes_preview'] = preview
+            g['notes_is_long'] = bool(shortened)
 
     # Also annotate the visible var_map entries (after ignore/group removal)
     for name, info in var_map.items():
-        info['notes_is_long'] = _notes_is_long(info.get('notes'))
+        preview, shortened = _notes_preview_and_flag(info.get('notes'))
+        info['notes_preview'] = preview
+        info['notes_is_long'] = bool(shortened)
 
     # Ensure each variable entry in `variables` inherits the flag when possible
     for idx, v in enumerate(variables):
@@ -499,9 +533,11 @@ def assemble_dataset(
             name = v.get('name')
             if name and name in var_map_all:
                 v['notes_is_long'] = var_map_all[name].get('notes_is_long', False)
+                v['notes_preview'] = var_map_all[name].get('notes_preview', var_map_all[name].get('notes','') or '')
             else:
                 # fallback to any notes_is_long present on the dict
                 v['notes_is_long'] = v.get('notes_is_long', False)
+                v['notes_preview'] = v.get('notes_preview', v.get('notes','') or '')
 
     # Prefer Markdown description in ./data/<dataset>_register_meta.md
     info_md, md_path = load_dataset_markdown(ds_id, meta_path)
