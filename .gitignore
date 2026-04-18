@@ -6,9 +6,6 @@ env/
 __pycache__/
 *.pyc
 
-# Build output
-dist/
-
 # Backup and temp files
 *.bak
 *~
