@@ -18,6 +18,7 @@ dev = [
     "types-pyyaml",
     "types-openpyxl",
     "types-Markdown",
+    "pytest>=8",
 ]
 
 [project.scripts]
@@ -76,3 +77,8 @@ module = [
     "markdown.*",
 ]
 ignore_missing_imports = true
+
+# ── Pytest ────────────────────────────────────────────────────────────
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
