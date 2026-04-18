@@ -89,7 +89,7 @@ predict-data-portal/
 ├── static/                         # Files copied verbatim to dist/
 ├── templates/
 │   └── index.html.j2               # Jinja2 HTML template
-└── dist/                           # Build output (gitignored)
+└── dist/                           # Build output (tracked)
     ├── variables_browser.html
     └── variables_browser.xlsx
 ```
@@ -452,18 +452,31 @@ git checkout <full-sha-hash>
 
 - Python ≥ 3.10
 
-### Linting
+### Dev tooling
+
+Install dev dependencies (ruff, mypy, pytest):
 
 ```bash
-pip install pylint
-pylint build.py
+pip install -e ".[dev]"
+```
+
+### Linting & formatting
+
+```bash
+ruff check .          # lint
+ruff format --check . # format check
 ```
 
 ### Type checking
 
 ```bash
-pip install mypy
-mypy build.py --ignore-missing-imports
+mypy build.py
+```
+
+### Tests
+
+```bash
+pytest
 ```
 
 ---

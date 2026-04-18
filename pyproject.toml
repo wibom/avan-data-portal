@@ -82,3 +82,8 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+filterwarnings = [
+    # openpyxl internally calls datetime.utcnow(), deprecated in Python 3.12+.
+    # Nothing we can do until openpyxl releases a fix.
+    "ignore:datetime.datetime.utcnow:DeprecationWarning:openpyxl",
+]
