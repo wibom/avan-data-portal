@@ -376,6 +376,18 @@ columns:
 
 ---
 
+## Selection Persistence
+
+Variable selections are saved to the browser's `sessionStorage`, so they
+survive page reloads within the same tab.  Selections are automatically
+cleared when the tab is closed.  Clicking **Clear** also removes the
+stored selection.
+
+No data leaves the browser — `sessionStorage` is local and not sent to
+any server.
+
+---
+
 ## Template Customization
 
 Edit the HTML template to change layout, styling, or behavior:

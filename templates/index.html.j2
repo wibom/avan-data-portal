@@ -178,6 +178,7 @@
 
     /* ── State ──────────────────────────────────────────────── */
 
+    const STORAGE_KEY = "predict-portal-selection-v1";
     const state = { datasets: [], selected: new Map() };
 
     /* ── DOM helpers ────────────────────────────────────────── */
@@ -185,6 +186,52 @@
     const $ = (sel, root = document) => root.querySelector(sel);
     const $all = (sel, root = document) =>
       Array.from(root.querySelectorAll(sel));
+
+    /* ── Session persistence ──────────────────────────────── */
+
+    /** Persist current selection to sessionStorage. */
+    function saveSelection() {
+      try {
+        const obj = Object.fromEntries(state.selected);
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+      } catch { /* storage full or unavailable */ }
+    }
+
+    /** Restore selection from sessionStorage and sync
+     *  checkbox state in the already-rendered DOM. */
+    function restoreSelection() {
+      try {
+        const raw = sessionStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const obj = JSON.parse(raw);
+        for (const [key, val] of Object.entries(obj)) {
+          state.selected.set(key, val);
+        }
+      } catch { return; }
+
+      // Sync checkboxes to match restored state
+      $all("tbody tr").forEach((row) => {
+        const key = row.dataset.key;
+        if (!key) return;
+        const cb = row.querySelector('input[type="checkbox"]');
+        if (cb) cb.checked = state.selected.has(key);
+      });
+
+      // Refresh group checkbox state
+      state.datasets.forEach((ds) => {
+        $all("tbody tr", $("#" + ds.id)).forEach((row) => {
+          const v = (ds._byRow || {})[row.dataset.key];
+          if (v && v.is_group) {
+            const cb = row.querySelector(
+              'input[type="checkbox"]'
+            );
+            if (cb) cb.checked = isGroupFullySelected(ds, v);
+          }
+        });
+      });
+
+      updateCartUI();
+    }
 
     /* ── Pure utilities ─────────────────────────────────────── */
 
@@ -769,6 +816,7 @@
       $(SEL.cartCount).textContent = String(n);
       $(SEL.downloadCsv).disabled = n === 0;
       $(SEL.clearSelection).disabled = n === 0;
+      saveSelection();
     }
 
     function downloadCSV() {
@@ -803,6 +851,8 @@
       $all('tbody input[type="checkbox"]').forEach(
         (cb) => (cb.checked = false)
       );
+      try { sessionStorage.removeItem(STORAGE_KEY); }
+      catch { /* unavailable */ }
       updateCartUI();
     }
 
@@ -943,6 +993,7 @@
       });
 
       render();
+      restoreSelection();
 
       $(SEL.downloadCsv).addEventListener(
         "click", downloadCSV
