@@ -1,43 +1,54 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+"""Build a self-contained variables-browser HTML and Excel workbook.
 
-"""
-Builds a self-contained variables browser HTML.
-
-What this script does:
-- Scans ./data for <dataset>_register_codebook.yaml and <dataset>_register_meta.yaml
-- For each dataset:
-    * Loads variable codebook and meta YAML
-    * Prefers dataset description from a Markdown file located in ./data,
-      named exactly like the meta YAML but with .md extension:
-          <dataset>_register_meta.md
-      (e.g., 'ps_cancer_register_meta.md')
-      If the Markdown file is missing, falls back to YAML 'info:' list (if present)
-    * Applies groups and ignore rules from ./config/variables_config.yaml
-    * Outputs a compact JSON structure that the template consumes
-- Renders ./templates/index.html.j2 to ./dist/variables_browser.html
-- Embeds per-file provenance (SHA-256) and a combined digest
+Pipeline:
+    1. Scan ``./data`` for ``<dataset>_register_codebook.yaml`` and
+       ``<dataset>_register_meta.yaml`` files.
+    2. For each dataset, load and normalise variable codebooks + metadata.
+       Dataset descriptions prefer a companion Markdown file
+       (``<dataset>_register_meta.md``); if absent, fall back to the YAML
+       ``info:`` field.
+    3. Apply ignore / grouping rules from
+       ``./config/variables_config.yaml``.
+    4. Render ``./templates/index.html.j2`` to
+       ``./dist/variables_browser.html`` with embedded per-file
+       provenance (SHA-256) and a combined digest.
+    5. Export formatted ``./dist/variables_browser.xlsx`` for offline use.
 """
 
-from __future__ import annotations
-
-import json
-import re
+import argparse
+import base64
 import fnmatch
 import hashlib
+import json
+import logging
+import os
+import re
+import shutil
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Tuple, Any, Optional
+from typing import Any
 
-import yaml  # PyYAML
-import markdown  # Markdown processing
+import markdown as markdown_lib
+import yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.packaging.core import DocumentProperties
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.worksheet import Worksheet
 
-# -------- Paths --------
+logger = logging.getLogger(__name__)
+
+# Type alias for YAML-derived dictionaries whose values are
+# heterogeneous and not worth spelling out at every call site.
+_YamlDict = dict[str, Any]
+
+# ──────────────────────────────────────────────────────────────────────
+# Paths (defaults — ``--output-dir`` overrides DIST_DIR at runtime)
+# ──────────────────────────────────────────────────────────────────────
+
 ROOT_DIR = Path(__file__).resolve().parent
 DATA_DIR = ROOT_DIR / "data"
 CONTENT_DIR = ROOT_DIR / "content"
@@ -46,624 +57,1079 @@ TEMPLATES_DIR = ROOT_DIR / "templates"
 DIST_DIR = ROOT_DIR / "dist"
 
 DATASETS_CONFIG = CONFIG_DIR / "datasets_config.yaml"
+VARIABLES_CONFIG = CONFIG_DIR / "variables_config.yaml"
 
 TEMPLATE_NAME = "index.html.j2"
-OUTPUT_HTML = DIST_DIR / "variables_browser.html"
+OUTPUT_HTML_NAME = "variables_browser.html"
 
-VARIABLES_CONFIG = CONFIG_DIR / "variables_config.yaml"
 INTRO_MD = CONTENT_DIR / "intro.md"
 FOOTER_MD = CONTENT_DIR / "footer.md"
 LOGO_PATH = CONTENT_DIR / "logo.png"
 STATIC_DIR = ROOT_DIR / "static"
 
-# -------- Utilities --------
+# Recognised keys inside each ``groups:`` entry in variables_config.yaml.
+# Used for typo-detection warnings at load time.
+_KNOWN_GROUP_KEYS = frozenset({
+    "pattern",
+    "source_variable_name_grouped",
+    "label",
+    "notes",
+    "csv_expand",
+    "category_strategy",
+    "categories_override",
+    "priority",
+})
 
-def sha256_bytes(b: bytes) -> str:
-    return hashlib.sha256(b).hexdigest()
 
-def sha256_file(path: Path) -> str:
-    return sha256_bytes(path.read_bytes())
+# ──────────────────────────────────────────────────────────────────────
+# Hashing utilities
+# ──────────────────────────────────────────────────────────────────────
 
-def dataset_id_from_filename(file: Path) -> str:
+def _sha256_bytes(data: bytes) -> str:
+    """Return the hex SHA-256 digest of *data*.
+
+    Args:
+        data: Raw bytes to hash.
+
+    Returns:
+        Hex-encoded SHA-256 digest string.
     """
-    'ps_cancer_register_codebook.yaml' -> 'ps_cancer'
-    'ps_cause-of-death_register_meta.yaml' -> 'ps_cause-of-death'
+    return hashlib.sha256(data).hexdigest()
+
+
+def _sha256_file(path: Path) -> str:
+    """Return the hex SHA-256 digest of a file, read in chunks.
+
+    Reading in 64 KiB chunks avoids loading very large files entirely
+    into memory.
+
+    Args:
+        path: Filesystem path to the file.
+
+    Returns:
+        Hex-encoded SHA-256 digest string.
     """
-    name = file.name
-    if name.endswith("_register_codebook.yaml"):
-        return name[: -len("_register_codebook.yaml")]
-    if name.endswith("_register_meta.yaml"):
-        return name[: -len("_register_meta.yaml")]
-    # Fallback
-    stem = file.stem
-    stem = stem.replace("_register_codebook", "").replace("_register_meta", "")
-    return stem
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        while chunk := fh.read(65_536):
+            digest.update(chunk)
+    return digest.hexdigest()
 
-def read_yaml(path: Path) -> Any:
-    with path.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
 
-# --- Minimal Markdown -> HTML for intro.md (dataset Markdown rendered client-side) ---
+# ──────────────────────────────────────────────────────────────────────
+# YAML / Markdown helpers
+# ──────────────────────────────────────────────────────────────────────
 
-def md_to_html_intro(text: str) -> str:
+def _read_yaml(path: Path) -> Any:
+    """Load a YAML file using the safe loader.
+
+    Args:
+        path: Filesystem path to a ``.yaml`` file.
+
+    Returns:
+        The parsed YAML content (typically a ``dict`` or ``list``).
     """
-    Convert intro.md to simple HTML using markdown with admonitions support.
+    with path.open("r", encoding="utf-8") as fh:
+        return yaml.safe_load(fh)
+
+
+def _md_to_html(
+    text: str,
+    *,
+    preserve_newlines: bool = False,
+) -> str:
+    """Convert Markdown text to HTML.
+
+    Uses the *extra* and *admonition* extensions.  When
+    *preserve_newlines* is ``True`` the *nl2br* extension is added so
+    that single newlines inside paragraphs become ``<br>`` tags (useful
+    for dataset description cards where authors expect line-break
+    fidelity).
+
+    Args:
+        text: Raw Markdown string.
+        preserve_newlines: If ``True``, add the ``nl2br`` extension.
+
+    Returns:
+        Rendered HTML string, or ``""`` on empty input.
     """
     if not text:
         return ""
+    extensions = ["extra", "admonition"]
+    if preserve_newlines:
+        extensions.append("nl2br")
     try:
-        # extra includes tables, code fences, footnotes, abbr, attr_list
-        # admonition provides !!! callout syntax
-        return markdown.markdown(text, extensions=["extra", "admonition"])
-    except Exception as e:
-        print(f"Warning: Failed to process markdown: {e}")
-        parts = [p.strip() for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
-        return "".join(f"<p>{escape_html(p)}</p>" for p in parts)
+        return markdown_lib.markdown(text, extensions=extensions)
+    except Exception:
+        logger.warning(
+            "Markdown conversion failed; using plain-text fallback.",
+        )
+        paragraphs = [
+            p.strip()
+            for p in re.split(r"\n\s*\n", text.strip())
+            if p.strip()
+        ]
+        return "".join(
+            f"<p>{_escape_html(p)}</p>" for p in paragraphs
+        )
 
-def md_to_html_dataset(text: str) -> str:
-    """
-    Convert dataset description markdown to HTML.
-    Uses the markdown library with support for lists, tables, code blocks, and admonitions.
-    """
-    if not text:
-        return ""
-    try:
-        # extra includes tables, code fences, footnotes, abbr, attr_list
-        # nl2br preserves line breaks
-        # admonition provides !!! callout syntax
-        return markdown.markdown(text, extensions=["extra", "nl2br", "admonition"])
-    except Exception as e:
-        print(f"Warning: Failed to process markdown: {e}")
-        # Fallback: simple conversion
-        parts = [p.strip() for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
-        return "".join(f"<p>{escape_html(p)}</p>" for p in parts)
 
-def escape_html(s: str) -> str:
+def _escape_html(text: str) -> str:
+    """Escape the five HTML-significant characters.
+
+    Args:
+        text: Unescaped string.
+
+    Returns:
+        String safe for inclusion in HTML element content.
+    """
     return (
-        s.replace("&", "&amp;")
-         .replace("<", "&lt;")
-         .replace(">", "&gt;")
-         .replace('"', "&quot;")
-         .replace("'", "&#39;")
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#39;")
     )
 
-# -------- variables_config.yaml handling --------
 
-def _compile_ignore_patterns(patterns: List[str]) -> List[re.Pattern]:
+# ──────────────────────────────────────────────────────────────────────
+# Dataset identification
+# ──────────────────────────────────────────────────────────────────────
+
+def _dataset_id_from_filename(path: Path) -> str:
+    """Extract a dataset identifier from a data-file name.
+
+    Examples:
+        ``ps_cancer_register_codebook.yaml``  -> ``ps_cancer``
+        ``ps_cause-of-death_register_meta.yaml`` -> ``ps_cause-of-death``
+
+    Args:
+        path: Path to a ``*_register_codebook.yaml`` or
+            ``*_register_meta.yaml`` file.
+
+    Returns:
+        Dataset identifier string.
     """
-    Compile ignore patterns. First try as regex; on failure fallback to glob->regex.
-    This makes it robust if an editor provides a glob (e.g., *.tmp).
+    name = path.name
+    for suffix in ("_register_codebook.yaml", "_register_meta.yaml"):
+        if name.endswith(suffix):
+            return name[: -len(suffix)]
+    # Fallback: strip known substrings from the stem.
+    stem = path.stem
+    stem = stem.replace("_register_codebook", "")
+    stem = stem.replace("_register_meta", "")
+    return stem
+
+
+# ──────────────────────────────────────────────────────────────────────
+# variables_config.yaml handling
+# ──────────────────────────────────────────────────────────────────────
+
+def _compile_ignore_patterns(
+    patterns: list[str] | None,
+) -> list[re.Pattern[str]]:
+    """Compile name-ignore patterns as regular expressions.
+
+    Each pattern is first attempted as a raw regex.  If that fails
+    (e.g. the author supplied a glob like ``*.tmp``), it is converted
+    via :func:`fnmatch.translate` and compiled as a regex instead.
+
+    Args:
+        patterns: Raw pattern strings from the config file.
+
+    Returns:
+        List of compiled :class:`re.Pattern` objects.
     """
-    compiled: List[re.Pattern] = []
+    compiled: list[re.Pattern[str]] = []
     for raw in patterns or []:
-        p = (raw or "").strip()
-        if not p:
+        pattern_str = (raw or "").strip()
+        if not pattern_str:
             continue
         try:
-            compiled.append(re.compile(p))
+            compiled.append(re.compile(pattern_str))
         except re.error:
-            compiled.append(re.compile(fnmatch.translate(p)))
+            logger.warning(
+                "Regex compilation failed for '%s'; "
+                "treating as glob pattern.",
+                pattern_str,
+            )
+            compiled.append(
+                re.compile(fnmatch.translate(pattern_str)),
+            )
     return compiled
 
-def load_variables_config() -> Tuple[Dict[str, Any], List[str], List[re.Pattern], List[str], List[str]]:
-    """
+
+def _load_variables_config() -> tuple[
+    dict[str, _YamlDict],
+    list[str],
+    list[re.Pattern[str]],
+    list[str],
+    list[str],
+]:
+    """Load variable filtering and grouping rules.
+
+    Reads ``config/variables_config.yaml`` and returns five values
+    consumed by the assembly pipeline.
+
     Returns:
-      groups_cfg: dict keyed by group_id with fields like pattern, label, notes, etc.
-      ignore_names: exact variable names to remove
-      ignore_name_patterns: compiled regex patterns for variable names to remove
-      ignore_tags: tags from variables that should be ignored
-      ignore_categories: category names from variables that should be ignored
+        A 5-tuple of:
+            - groups_config: Mapping of group-ID -> group definition.
+            - ignore_names: Exact variable names to drop.
+            - ignore_name_patterns: Compiled regex patterns; matching
+              variable names are dropped.
+            - ignore_tags: Variables carrying any of these tags are
+              dropped.
+            - ignore_categories: Variables in any of these categories
+              are dropped.
     """
     if not VARIABLES_CONFIG.exists():
         return {}, [], [], [], []
 
-    cfg = read_yaml(VARIABLES_CONFIG) or {}
-    groups_cfg = (cfg.get("groups") or {})
-    ignore_cfg = (cfg.get("ignore") or {})
-    ignore_names: List[str] = (ignore_cfg.get("names", []) or [])
-    ignore_name_patterns = _compile_ignore_patterns(ignore_cfg.get("name_patterns", []) or [])
-    ignore_tags: List[str] = (ignore_cfg.get("tags", []) or [])
-    ignore_categories: List[str] = (ignore_cfg.get("categories", []) or [])
-    return groups_cfg, ignore_names, ignore_name_patterns, ignore_tags, ignore_categories
+    config = _read_yaml(VARIABLES_CONFIG) or {}
+    groups_config: dict[str, _YamlDict] = config.get("groups") or {}
 
-# -------- Codebook/meta ingestion --------
+    # Warn about unrecognised keys (catches typos like "patern").
+    for group_id, group_def in groups_config.items():
+        if not isinstance(group_def, dict):
+            continue
+        unknown = set(group_def.keys()) - _KNOWN_GROUP_KEYS
+        if unknown:
+            logger.warning(
+                "Unrecognised key(s) %s in group '%s' "
+                "(variables_config.yaml). Recognised: %s",
+                sorted(unknown),
+                group_id,
+                sorted(_KNOWN_GROUP_KEYS),
+            )
 
-def discover_datasets() -> Dict[str, Dict[str, Optional[Path]]]:
+    ignore_cfg = config.get("ignore") or {}
+    ignore_names: list[str] = ignore_cfg.get("names") or []
+    ignore_name_patterns = _compile_ignore_patterns(
+        ignore_cfg.get("name_patterns") or [],
+    )
+    ignore_tags: list[str] = ignore_cfg.get("tags") or []
+    ignore_categories: list[str] = (
+        ignore_cfg.get("categories") or []
+    )
+
+    return (
+        groups_config,
+        ignore_names,
+        ignore_name_patterns,
+        ignore_tags,
+        ignore_categories,
+    )
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Codebook / meta ingestion
+# ──────────────────────────────────────────────────────────────────────
+
+def _discover_datasets() -> dict[str, dict[str, Path | None]]:
+    """Scan the data directory for dataset YAML files.
+
+    Returns:
+        Mapping of ``dataset_id`` -> ``{"codebook": Path|None,
+        "meta": Path|None}``.
     """
-    Returns map: dataset_id -> {'codebook': Path|None, 'meta': Path|None}
-    """
-    out: Dict[str, Dict[str, Optional[Path]]] = {}
+    result: dict[str, dict[str, Path | None]] = {}
     for yml in DATA_DIR.glob("*_register_*.yaml"):
-        ds_id = dataset_id_from_filename(yml)
-        bucket = out.setdefault(ds_id, {"codebook": None, "meta": None})
+        dataset_id = _dataset_id_from_filename(yml)
+        bucket = result.setdefault(
+            dataset_id,
+            {"codebook": None, "meta": None},
+        )
         if yml.name.endswith("_register_codebook.yaml"):
             bucket["codebook"] = yml
         elif yml.name.endswith("_register_meta.yaml"):
             bucket["meta"] = yml
-    return out
+    return result
 
-def dataset_md_path_for(ds_id: str, meta_path: Optional[Path]) -> Path:
-    """
-    Dataset description markdown is stored in ./data alongside YAML,
-    named exactly like the meta YAML but with '.md' extension:
-        <dataset>_register_meta.md
-    If meta_path is None, derive the path from ds_id.
+
+def _dataset_md_path_for(
+    dataset_id: str,
+    meta_path: Path | None,
+) -> Path:
+    """Derive the path to a dataset's Markdown description file.
+
+    The Markdown file sits in ``./data`` alongside the YAML files and
+    is named identically to ``*_register_meta.yaml`` but with a ``.md``
+    extension.
+
+    Args:
+        dataset_id: Dataset identifier (e.g. ``ps_cancer``).
+        meta_path: Path to the meta YAML, or ``None`` if absent.
+
+    Returns:
+        Expected path to the Markdown file (may not exist on disk).
     """
     if meta_path:
-        return meta_path.with_suffix(".md")  # ..._register_meta.md
-    # meta missing; still support <id>_register_meta.md
-    return DATA_DIR / f"{ds_id}_register_meta.md"
+        return meta_path.with_suffix(".md")
+    return DATA_DIR / f"{dataset_id}_register_meta.md"
 
-def load_dataset_markdown(ds_id: str, meta_path: Optional[Path]) -> Tuple[str, Optional[Path]]:
+
+def _load_dataset_markdown(
+    dataset_id: str,
+    meta_path: Path | None,
+) -> tuple[str, Path | None]:
+    """Load a dataset's Markdown description, if it exists.
+
+    Args:
+        dataset_id: Dataset identifier.
+        meta_path: Path to the meta YAML, or ``None``.
+
+    Returns:
+        A 2-tuple of ``(markdown_text, md_path)`` where *md_path* is
+        ``None`` when no file was found.
     """
-    Returns (markdown_text, md_path_if_exists) else ("", None)
-    """
-    md_path = dataset_md_path_for(ds_id, meta_path)
+    md_path = _dataset_md_path_for(dataset_id, meta_path)
     if md_path.exists() and md_path.is_file():
         return md_path.read_text(encoding="utf-8"), md_path
     return "", None
 
-def extract_var_map_from_codebook(cb_data: Any) -> Dict[str, Dict[str, Any]]:
+
+# ──────────────────────────────────────────────────────────────────────
+# Variable normalisation
+# ──────────────────────────────────────────────────────────────────────
+
+def _normalize_var(raw_var: _YamlDict) -> _YamlDict:
+    """Normalise a single variable dictionary.
+
+    Codebook YAML files use varying field names for the same concept
+    (e.g. ``labels`` vs ``label``, ``coltypes`` vs ``dtype``).  This
+    function copies the input and adds canonical keys so downstream
+    code can rely on a stable schema.
+
+    Args:
+        raw_var: Variable metadata dict read from YAML.
+
+    Returns:
+        A copy of *raw_var* with canonical keys added.
     """
-    Accept multiple codebook YAML shapes:
-      - {'variables': [ {name:.., ...}, ... ]}
-      - {'variables': { varname: {...}, ... }}
-      - {'var_map': { varname: {...}, ... }}
-      - Or a mapping {name: {...}} directly
+    normalized = dict(raw_var)
+
+    # Standardize name.
+    if "name" not in normalized:
+        normalized["name"] = (
+            normalized.get("colname_silver")
+            or normalized.get("colname")
+            or None
+        )
+
+    # Normalise label — try several source fields.
+    normalized["label"] = (
+        normalized.get("labels")
+        or normalized.get("label")
+        or normalized.get("name")
+        or ""
+    )
+
+    # Normalise type / data-type field.
+    normalized["type"] = (
+        normalized.get("coltypes")
+        or normalized.get("dtype")
+        or normalized.get("class")
+        or ""
+    )
+
+    # Normalise categories and tags to lists.
+    categories = normalized.get("categories")
+    if isinstance(categories, str):
+        categories = [categories]
+    normalized["categories"] = categories or []
+
+    tags = normalized.get("tags")
+    if isinstance(tags, str):
+        tags = [tags]
+    normalized["tags"] = tags or []
+
+    # Other fields.
+    normalized["notes"] = normalized.get("notes") or ""
+    # ``source`` = original column name from the upstream register.
+    normalized["source"] = (
+        normalized.get("colname_silver")
+        or normalized.get("source")
+        or ""
+    )
+    normalized["is_group"] = bool(normalized.get("is_group", False))
+
+    return normalized
+
+
+def _normalize_var_map(raw_map: dict[str, _YamlDict]) -> dict[str, _YamlDict]:
+    """Normalise every variable in a name -> metadata mapping.
+
+    Args:
+        raw_map: Raw mapping from variable name to metadata dict.
+
+    Returns:
+        A new mapping with the same keys and normalised metadata.
     """
-    if not cb_data:
+    normalized: dict[str, _YamlDict] = {}
+    for name, var_info in raw_map.items():
+        if not isinstance(var_info, dict):
+            continue
+        var_info = dict(var_info)
+        var_info.setdefault("name", name)
+        normalized[name] = _normalize_var(var_info)
+    return normalized
+
+
+def _extract_var_map_from_codebook(
+    codebook_data: Any,
+) -> dict[str, _YamlDict]:
+    """Parse a codebook YAML into a normalised variable mapping.
+
+    Supports several YAML shapes produced by different upstream tools:
+
+    * ``{variables: [{name: ..., ...}, ...]}``  (list of dicts)
+    * ``{variables: {varname: {...}, ...}}``     (nested mapping)
+    * ``{var_map: {varname: {...}, ...}}``       (alternative key)
+    * ``{varname: {...}, ...}``                  (flat mapping)
+
+    Args:
+        codebook_data: Parsed YAML content from a codebook file.
+
+    Returns:
+        Normalised mapping of variable name -> metadata dict.
+    """
+    if not codebook_data:
         return {}
 
-    if isinstance(cb_data, dict):
-        if "var_map" in cb_data and isinstance(cb_data["var_map"], dict):
-            return _normalize_var_map(cb_data["var_map"])
+    if isinstance(codebook_data, dict):
+        if "var_map" in codebook_data and isinstance(
+            codebook_data["var_map"], dict,
+        ):
+            return _normalize_var_map(codebook_data["var_map"])
 
-        if "variables" in cb_data:
-            vars_obj = cb_data["variables"]
+        if "variables" in codebook_data:
+            vars_obj = codebook_data["variables"]
             if isinstance(vars_obj, list):
-                return {v.get("name"): _normalize_var(v) for v in vars_obj if v and v.get("name")}
+                return {
+                    v.get("name"): _normalize_var(v)
+                    for v in vars_obj
+                    if v and v.get("name")
+                }
             if isinstance(vars_obj, dict):
                 return _normalize_var_map(vars_obj)
 
-        if all(isinstance(v, dict) for v in cb_data.values()):
-            return _normalize_var_map(cb_data)
+        if all(
+            isinstance(v, dict) for v in codebook_data.values()
+        ):
+            return _normalize_var_map(codebook_data)
 
     return {}
 
-def _normalize_var_map(m: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-    out: Dict[str, Dict[str, Any]] = {}
-    for name, v in m.items():
-        if not isinstance(v, dict):
-            continue
-        v = dict(v)
-        v.setdefault("name", name)
-        out[name] = _normalize_var(v)
-    return out
 
-def _normalize_var(v: Dict[str, Any]) -> Dict[str, Any]:
-    out = dict(v)
+# ──────────────────────────────────────────────────────────────────────
+# Filtering
+# ──────────────────────────────────────────────────────────────────────
 
-    # Standardize name
-    if "name" not in out:
-        out["name"] = out.get("colname_silver") or out.get("colname") or None
+def _apply_ignore(
+    var_map: dict[str, _YamlDict],
+    ignore_names: list[str],
+    ignore_name_patterns: list[re.Pattern[str]],
+    ignore_tags: list[str] | None = None,
+    ignore_categories: list[str] | None = None,
+) -> dict[str, _YamlDict]:
+    """Remove variables that match any ignore rule.
 
-    # Normalize label
-    out["label"] = (
-        out.get("labels")
-        or out.get("label")
-        or out.get("name")
-        or ""
-    )
+    A variable is removed if **any** of the following hold:
 
-    # Normalize type
-    out["type"] = (
-        out.get("coltypes")
-        or out.get("dtype")
-        or out.get("class")
-        or ""
-    )
+    * Its name appears in *ignore_names*.
+    * Its name matches any pattern in *ignore_name_patterns*.
+    * It carries a tag listed in *ignore_tags*.
+    * It belongs to a category listed in *ignore_categories*.
 
-    # Normalize categories — always list
-    cats = out.get("categories")
-    if isinstance(cats, str):
-        cats = [cats]
-    out["categories"] = cats or []
+    Args:
+        var_map: Variable name -> metadata mapping.
+        ignore_names: Exact variable names to remove.
+        ignore_name_patterns: Compiled regex patterns.
+        ignore_tags: Tag strings to match against variable tags.
+        ignore_categories: Category strings to match.
 
-    # Normalize tags — always list
-    tags = out.get("tags")
-    if isinstance(tags, str):
-        tags = [tags]
-    out["tags"] = tags or []
-
-    # Other fields
-    out["notes"] = out.get("notes") or ""
-    # source = the source variable name (typically from colname_silver)
-    out["source"] = out.get("colname_silver") or out.get("source") or ""
-    out["is_group"] = bool(out.get("is_group", False))
-
-    return out
-
-def apply_ignore(var_map: Dict[str, Dict[str, Any]], ignore_names: List[str], ignore_name_patterns: List[re.Pattern], ignore_tags: List[str] = None, ignore_categories: List[str] = None) -> Dict[str, Dict[str, Any]]:
+    Returns:
+        A new mapping containing only the variables that survived
+        filtering.
+    """
     if ignore_tags is None:
         ignore_tags = []
     if ignore_categories is None:
         ignore_categories = []
-    out = {}
-    for name, v in var_map.items():
-        # Check exact name match
+
+    filtered: dict[str, _YamlDict] = {}
+    for name, var_info in var_map.items():
         if name in ignore_names:
             continue
-        # Check name pattern match
         if any(p.search(name) for p in ignore_name_patterns):
             continue
-        # Check if variable has any tags in the ignore list
-        var_tags = v.get("tags", []) or []
+        var_tags = var_info.get("tags") or []
         if any(tag in ignore_tags for tag in var_tags):
             continue
-        # Check if variable has any categories in the ignore list
-        var_categories = v.get("categories", []) or []
-        if any(cat in ignore_categories for cat in var_categories):
+        var_cats = var_info.get("categories") or []
+        if any(cat in ignore_categories for cat in var_cats):
             continue
-        out[name] = v
-    return out
+        filtered[name] = var_info
+    return filtered
 
-# -------- Grouping --------
 
-def build_groups_for_dataset(
-    groups_cfg: Dict[str, Any],
-    var_map: Dict[str, Dict[str, Any]]
-) -> List[Dict[str, Any]]:
+# ──────────────────────────────────────────────────────────────────────
+# Grouping
+# ──────────────────────────────────────────────────────────────────────
+
+def _build_groups_for_dataset(
+    groups_config: dict[str, _YamlDict],
+    var_map: dict[str, _YamlDict],
+) -> list[_YamlDict]:
+    """Create synthetic group variables from config patterns.
+
+    Each group definition supplies a regex ``pattern``.  Variables whose
+    names match that pattern are collapsed into a single "group" row in
+    the final listing.  The group's categories are derived from its
+    members' categories according to one of three strategies:
+
+    * **union** (default): all categories found in any member.
+    * **intersection**: only categories shared by every member.
+    * **override**: a fixed list supplied in ``categories_override``.
+
+    Args:
+        groups_config: Mapping of group-ID -> group definition dict.
+        var_map: Current variable mapping (post-ignore filtering).
+
+    Returns:
+        A list of synthetic group dicts sorted by
+        ``(priority, label)``.
     """
-    Creates synthetic group variables from config patterns.
-    Returns list of:
-      { name, label, is_group=True, members:[...], notes, source, type:"", categories:[...], tags:[], _priority:int }
-    """
-    groups: List[Dict[str, Any]] = []
-    for gid, cfg in (groups_cfg or {}).items():
-        pattern = cfg.get("pattern")
+    groups: list[_YamlDict] = []
+
+    for group_id, group_def in (groups_config or {}).items():
+        pattern = group_def.get("pattern")
         if not pattern:
             continue
         try:
-            rx = re.compile(pattern)
+            regex = re.compile(pattern)
         except re.error:
+            logger.warning(
+                "Invalid regex '%s' for group '%s'; skipping.",
+                pattern,
+                group_id,
+            )
             continue
 
-        members = sorted([name for name in var_map.keys() if rx.search(name)])
+        members = sorted(
+            name for name in var_map if regex.search(name)
+        )
         if not members:
             continue
 
-        strategy = (cfg.get("category_strategy") or "union").lower()
-        cats_override = cfg.get("categories_override") or []
-        if strategy == "override":
-            cats = list(cats_override)
-        else:
-            member_cats = [set((var_map[m].get("categories") or [])) for m in members]
-            if not member_cats:
-                cats = []
-            elif strategy == "intersection":
-                s = set.intersection(*member_cats) if member_cats else set()
-                cats = sorted(s)
-            else:
-                s = set().union(*member_cats) if member_cats else set()
-                cats = sorted(s)
+        # Derive categories from members according to the chosen
+        # strategy (union / intersection / override).
+        strategy = (
+            group_def.get("category_strategy") or "union"
+        ).lower()
+        categories_override = (
+            group_def.get("categories_override") or []
+        )
 
-        group_var = {
-            "name": gid,
-            "label": cfg.get("label") or gid,
+        if strategy == "override":
+            categories = list(categories_override)
+        else:
+            member_cats = [
+                set(var_map[m].get("categories") or [])
+                for m in members
+            ]
+            if not member_cats:
+                categories = []
+            elif strategy == "intersection":
+                categories = sorted(
+                    set.intersection(*member_cats),
+                )
+            else:  # "union" (default)
+                categories = sorted(
+                    set().union(*member_cats),
+                )
+
+        group_var: _YamlDict = {
+            "name": group_id,
+            "label": group_def.get("label") or group_id,
             "is_group": True,
             "members": members,
-            "notes": cfg.get("notes") or "",
-            "source": cfg.get("source_variable_name_grouped") or "",
+            "notes": group_def.get("notes") or "",
+            "source": (
+                group_def.get("source_variable_name_grouped")
+                or ""
+            ),
             "type": "",
-            "categories": cats,
+            "categories": categories,
             "tags": [],
-            # preserve group-level settings for client-side behavior
-            "csv_expand": cfg.get("csv_expand") or "",
-            "category_strategy": cfg.get("category_strategy") or "",
-            "categories_override": cfg.get("categories_override") or [],
-            "_priority": int(cfg.get("priority")) if "priority" in cfg else 1000
+            # Client-side behaviour hints.
+            "csv_expand": group_def.get("csv_expand") or "",
+            "category_strategy": (
+                group_def.get("category_strategy") or ""
+            ),
+            "categories_override": (
+                group_def.get("categories_override") or []
+            ),
+            "_priority": (
+                int(group_def.get("priority", 1000))
+                if "priority" in group_def
+                else 1000
+            ),
         }
         groups.append(group_var)
 
-    groups.sort(key=lambda g: (g.get("_priority", 1000), g.get("label", g["name"]).lower()))
+    groups.sort(
+        key=lambda g: (
+            g.get("_priority", 1000),
+            (g.get("label", g["name"]) or "").lower(),
+        ),
+    )
     return groups
 
-# -------- Dataset assembly --------
 
-def assemble_dataset(
-    ds_id: str,
-    codebook_path: Optional[Path],
-    meta_path: Optional[Path],
-    groups_cfg: Dict[str, Any],
-    ignore_names: List[str],
-    ignore_name_patterns: List[re.Pattern],
-    ignore_tags: List[str],
-    ignore_categories: List[str],
-) -> Tuple[Dict[str, Any], List[Tuple[str, str]]]:
-    """
-    Returns (dataset_dict, provenance_entries)
-    provenance_entries: list[(filename, sha256)]
-    """
-    provenance: List[Tuple[str, str]] = []
+# ──────────────────────────────────────────────────────────────────────
+# Notes preview
+# ──────────────────────────────────────────────────────────────────────
 
-    # Load meta YAML (optional)
-    meta = {}
+def _notes_preview_and_flag(
+    text: str | None,
+) -> tuple[str, bool]:
+    """Build a short preview of a notes field.
+
+    The preview collapses all internal whitespace.  If the original
+    text is longer than the preview (i.e. it was truncated), the second
+    element of the returned tuple is ``True``, signalling that the
+    client should render an expand/collapse toggle.
+
+    Heuristics:
+
+    * If the text contains a double newline, the first paragraph is
+      used as the preview.
+    * Otherwise, the text is hard-capped at 120 characters (breaking
+      at the nearest preceding word boundary).
+
+    Args:
+        text: Raw notes string (may be ``None`` or empty).
+
+    Returns:
+        A 2-tuple ``(preview, is_shortened)``.
+    """
+    if not text:
+        return "", False
+
+    raw = str(text)
+    collapsed_full = re.sub(r"\s+", " ", raw).strip()
+
+    # Choose a snippet: prefer the first paragraph when double-newline
+    # separators exist; otherwise hard-cap at 120 characters.
+    if "\n\n" in raw:
+        snippet = raw.split("\n\n", 1)[0]
+    else:
+        max_len = 120
+        if len(collapsed_full) <= max_len:
+            snippet = collapsed_full
+        else:
+            cut = collapsed_full.rfind(" ", 0, max_len)
+            if cut == -1:
+                cut = max_len
+            snippet = collapsed_full[:cut]
+
+    preview = re.sub(r"\s+", " ", snippet).strip()
+    shortened = preview != collapsed_full
+    if shortened and not preview.endswith("\u2026"):
+        preview = preview.rstrip(" .") + "\u2026"
+    return preview, shortened
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Dataset assembly
+# ──────────────────────────────────────────────────────────────────────
+
+def _assemble_dataset(
+    dataset_id: str,
+    codebook_path: Path | None,
+    meta_path: Path | None,
+    groups_config: dict[str, _YamlDict],
+    ignore_names: list[str],
+    ignore_name_patterns: list[re.Pattern[str]],
+    ignore_tags: list[str],
+    ignore_categories: list[str],
+) -> tuple[_YamlDict, list[tuple[str, str]]]:
+    """Load, normalise, filter and group a single dataset.
+
+    This is the main per-dataset pipeline entry point.  It:
+
+    1. Loads the meta YAML and codebook YAML.
+    2. Normalises variable metadata.
+    3. Applies ignore rules.
+    4. Synthesises group variables.
+    5. Builds the final ordered variable list.
+    6. Annotates each variable with a notes preview and flag.
+    7. Loads the Markdown dataset description (or YAML fallback).
+
+    Args:
+        dataset_id: Short identifier (e.g. ``ps_cancer``).
+        codebook_path: Path to the codebook YAML, or ``None``.
+        meta_path: Path to the meta YAML, or ``None``.
+        groups_config: Group definitions from variables_config.
+        ignore_names: Exact variable names to remove.
+        ignore_name_patterns: Compiled regex patterns for names.
+        ignore_tags: Tags that trigger removal.
+        ignore_categories: Categories that trigger removal.
+
+    Returns:
+        A 2-tuple ``(dataset_dict, provenance_entries)`` where
+        *provenance_entries* is a list of ``(filename, sha256_hex)``
+        pairs for every input file consumed.
+    """
+    provenance: list[tuple[str, str]] = []
+
+    # ── 1. Load meta YAML (optional). ────────────────────────────
+    meta: _YamlDict = {}
     if meta_path and meta_path.exists():
-        meta = read_yaml(meta_path) or {}
-        provenance.append((meta_path.name, sha256_file(meta_path)))
+        meta = _read_yaml(meta_path) or {}
+        provenance.append(
+            (meta_path.name, _sha256_file(meta_path)),
+        )
 
-    # Load codebook YAML (optional)
-    var_map: Dict[str, Dict[str, Any]] = {}
+    # ── 2. Load and normalise codebook. ──────────────────────────
+    var_map: dict[str, _YamlDict] = {}
     if codebook_path and codebook_path.exists():
-        cb_data = read_yaml(codebook_path)
-        var_map = extract_var_map_from_codebook(cb_data)
-        # Attach source filename to each variable
-        for v in var_map.values():
-            v['_source_yaml'] = codebook_path.name
-        provenance.append((codebook_path.name, sha256_file(codebook_path)))
+        codebook_data = _read_yaml(codebook_path)
+        var_map = _extract_var_map_from_codebook(codebook_data)
+        for var_info in var_map.values():
+            var_info["_source_yaml"] = codebook_path.name
+        provenance.append(
+            (codebook_path.name, _sha256_file(codebook_path)),
+        )
 
-    # Ignore rules
-    var_map = apply_ignore(var_map, ignore_names, ignore_name_patterns, ignore_tags, ignore_categories)
+    # ── 3. Apply ignore rules. ───────────────────────────────────
+    var_map = _apply_ignore(
+        var_map,
+        ignore_names,
+        ignore_name_patterns,
+        ignore_tags,
+        ignore_categories,
+    )
 
-    # Preserve a full copy of the var_map (after applying ignore rules).
-    # We may hide member variables from the visible `var_map` when groups are
-    # synthesized, but need the full mapping for CSV export when groups expand
-    # into individual members on the client side.
+    # Keep a full copy *after* ignore rules.  Individual members may
+    # be hidden from the visible listing when a synthetic group
+    # subsumes them, but the full map is still needed for client-side
+    # CSV export where groups expand back into their members.
     var_map_all = dict(var_map)
 
-    # Group variables
-    groups = build_groups_for_dataset(groups_cfg, var_map)
+    # ── 4. Build synthetic groups. ───────────────────────────────
+    groups = _build_groups_for_dataset(groups_config, var_map)
 
-    # If a variable is represented by a synthetic group, do not show the
-    # individual member variables in the UI. Groups are shown instead.
-    # This keeps the listing concise and avoids duplicated rows.
-    grouped_members = set()
-    for g in groups:
-        for m in g.get("members", []):
-            grouped_members.add(m)
-    for m in grouped_members:
-        if m in var_map:
-            del var_map[m]
+    # Remove individual members that are now represented by a group,
+    # keeping the listing concise and avoiding duplicated rows.
+    grouped_members: set[str] = set()
+    for group in groups:
+        for member in group.get("members", []):
+            grouped_members.add(member)
+    for member in grouped_members:
+        var_map.pop(member, None)
 
-    # Variables list: place each synthetic group at the position of its first
-    # member according to the original codebook order (var_map_all). This keeps
-    # the listing intuitive: groups appear where their members would have been.
-    variables: List[Dict[str, Any]] = []
+    # ── 5. Ordered variable list. ────────────────────────────────
+    # Place each synthetic group at the position of its first member
+    # in the original codebook order so the listing stays intuitive.
+    variables: list[_YamlDict] = []
 
-    # Build mapping from member -> group (respect group priority order)
-    member_to_group: Dict[str, Dict[str, Any]] = {}
-    for g in groups:
-        for m in g.get("members", []):
-            if m not in member_to_group:
-                member_to_group[m] = g
+    # Map member -> owning group (first group by priority wins).
+    member_to_group: dict[str, _YamlDict] = {}
+    for group in groups:
+        for member in group.get("members", []):
+            if member not in member_to_group:
+                member_to_group[member] = group
 
-    inserted_groups = set()
-    # Iterate original ordering from var_map_all (preserves YAML mapping order)
-    for name in (list(var_map_all.keys()) if isinstance(var_map_all, dict) else []):
-        # If this name belongs to a group, insert the group at first occurrence
+    inserted_groups: set[str] = set()
+    for name in list(var_map_all.keys()):
         if name in member_to_group:
-            g = member_to_group[name]
-            if g["name"] not in inserted_groups:
-                variables.append(g)
-                inserted_groups.add(g["name"])
-            # skip the member (we removed members from var_map earlier)
+            group = member_to_group[name]
+            if group["name"] not in inserted_groups:
+                variables.append(group)
+                inserted_groups.add(group["name"])
             continue
-
-        # Otherwise, if the variable still exists (was not grouped), append it
         if name in var_map:
             variables.append(var_map[name])
 
-    # Append any groups not yet inserted (no members present in var_map_all)
-    for g in groups:
-        if g["name"] not in inserted_groups:
-            variables.append(g)
+    # Append groups whose members weren't present in var_map_all.
+    for group in groups:
+        if group["name"] not in inserted_groups:
+            variables.append(group)
 
-    # Append any remaining variables (defensive)
-    for vname, v in var_map.items():
-        if v not in variables:
-            variables.append(v)
+    # Defensive: append orphan variables not yet in the list.
+    for var_info in var_map.values():
+        if var_info not in variables:
+            variables.append(var_info)
 
-    # Heuristic to determine whether a notes field is "long" enough
-    # to require a client-side expand/collapse. This avoids unreliable
-    # visual measurements in the browser (line-clamp) by computing a
-    # simple boolean at build time. Criteria:
-    # - >= 3 explicit newlines -> long
-    # - OR length > 240 characters -> long
-    def _notes_preview_and_flag(text: Optional[str]) -> Tuple[str, bool]:
-        """Return a preview string and a boolean indicating if the notes were shortened.
+    # ── 6. Annotate notes previews. ──────────────────────────────
+    for var_info in var_map_all.values():
+        preview, shortened = _notes_preview_and_flag(
+            var_info.get("notes"),
+        )
+        var_info["notes_preview"] = preview
+        var_info["notes_is_long"] = bool(shortened)
 
-        The preview always collapses internal whitespace. If the original text is
-        longer than the preview (we truncated it), return (preview, True). The
-        flag is therefore a direct indicator that a shortened preview was used
-        and should cause the client to render a toggle.
-        """
-        if not text:
-            return "", False
-        t = str(text)
-        # Full collapsed representation (single-line, whitespace collapsed)
-        collapsed_full = re.sub(r"\s+", " ", t).strip()
+    for group in groups:
+        preview, shortened = _notes_preview_and_flag(
+            group.get("notes"),
+        )
+        group["notes_preview"] = preview
+        group["notes_is_long"] = bool(shortened)
 
-        # Decide whether to create a shortened preview. Criteria mirror previous
-        # heuristics but we compute a preview in all cases so we can compare.
-        prefer_paragraph = True
-        if prefer_paragraph and '\n\n' in t:
-            snippet = t.split('\n\n', 1)[0]
+    for var_info in var_map.values():
+        preview, shortened = _notes_preview_and_flag(
+            var_info.get("notes"),
+        )
+        var_info["notes_preview"] = preview
+        var_info["notes_is_long"] = bool(shortened)
+
+    # Propagate flags into the merged ``variables`` list.
+    for entry in variables:
+        if not isinstance(entry, dict):
+            continue
+        entry_name: Any = entry.get("name")
+        if entry_name and entry_name in var_map_all:
+            source = var_map_all[entry_name]
+            entry["notes_is_long"] = source.get(
+                "notes_is_long", False,
+            )
+            entry["notes_preview"] = source.get(
+                "notes_preview",
+                source.get("notes", "") or "",
+            )
         else:
-            # Soft cap for preview length; preserve word boundary
-            # Use a conservative value so that previews which would visually
-            # wrap/clamp in the browser are marked as shortened and get a toggle.
-            N = 120
-            if len(collapsed_full) <= N:
-                snippet = collapsed_full
-            else:
-                cut = collapsed_full.rfind(' ', 0, N)
-                if cut == -1:
-                    cut = N
-                snippet = collapsed_full[:cut]
+            entry.setdefault("notes_is_long", False)
+            entry.setdefault(
+                "notes_preview",
+                entry.get("notes", "") or "",
+            )
 
-        preview = re.sub(r"\s+", " ", snippet).strip()
-        shortened = preview != collapsed_full
-        if shortened and not preview.endswith('…'):
-            preview = preview.rstrip(' .') + '…'
-        return preview, shortened
-
-    # Annotate all variables we expose in var_map_all and synthetic groups
-    for name, info in var_map_all.items():
-        preview, shortened = _notes_preview_and_flag(info.get('notes'))
-        info['notes_preview'] = preview
-        info['notes_is_long'] = bool(shortened)
-
-    for g in groups:
-        # groups may have a notes field
-        if isinstance(g, dict):
-            preview, shortened = _notes_preview_and_flag(g.get('notes'))
-            g['notes_preview'] = preview
-            g['notes_is_long'] = bool(shortened)
-
-    # Also annotate the visible var_map entries (after ignore/group removal)
-    for name, info in var_map.items():
-        preview, shortened = _notes_preview_and_flag(info.get('notes'))
-        info['notes_preview'] = preview
-        info['notes_is_long'] = bool(shortened)
-
-    # Ensure each variable entry in `variables` inherits the flag when possible
-    for idx, v in enumerate(variables):
-        if isinstance(v, dict):
-            # groups already annotated; for variables, prefer var_map_all metadata
-            name = v.get('name')
-            if name and name in var_map_all:
-                v['notes_is_long'] = var_map_all[name].get('notes_is_long', False)
-                v['notes_preview'] = var_map_all[name].get('notes_preview', var_map_all[name].get('notes','') or '')
-            else:
-                # fallback to any notes_is_long present on the dict
-                v['notes_is_long'] = v.get('notes_is_long', False)
-                v['notes_preview'] = v.get('notes_preview', v.get('notes','') or '')
-
-    # Prefer Markdown description in ./data/<dataset>_register_meta.md
-    info_md, md_path = load_dataset_markdown(ds_id, meta_path)
+    # ── 7. Dataset description (Markdown preferred). ─────────────
+    info_md, md_path = _load_dataset_markdown(
+        dataset_id, meta_path,
+    )
     if md_path:
-        provenance.append((md_path.name, sha256_file(md_path)))
+        provenance.append(
+            (md_path.name, _sha256_file(md_path)),
+        )
 
-    # If no Markdown, fall back to YAML 'info' (list of strings) if present
-    info_block: Dict[str, Any]
     if info_md.strip():
-        # Convert markdown to HTML server-side
-        info_html = md_to_html_dataset(info_md)
-        info_block = {"info_html": info_html}
+        info_block: _YamlDict = {
+            "info_html": _md_to_html(
+                info_md, preserve_newlines=True,
+            ),
+        }
     else:
-        yaml_info = meta.get("info") if isinstance(meta.get("info"), list) else []
+        yaml_info = (
+            meta.get("info")
+            if isinstance(meta.get("info"), list)
+            else []
+        )
         info_block = {"info": yaml_info}
 
-    ds = {
-        "id": ds_id,
-        "title": meta.get("title") or readable_title_from_id(ds_id),
+    dataset = {
+        "id": dataset_id,
+        "title": (
+            meta.get("title")
+            or _readable_title_from_id(dataset_id)
+        ),
         "subtitle": meta.get("subtitle") or "",
         **info_block,
         "var_map": var_map,
         "var_map_all": var_map_all,
-        "variables": variables
+        "variables": variables,
     }
-    return ds, provenance
+    return dataset, provenance
 
-def readable_title_from_id(ds_id: str) -> str:
-    return ds_id.replace("_", " ").replace("-", " ").title()
 
-# -------- Intro.md --------
+def _readable_title_from_id(dataset_id: str) -> str:
+    """Generate a human-readable title from a dataset identifier.
 
-def load_intro_html() -> str:
+    Args:
+        dataset_id: e.g. ``ps_cancer``.
+
+    Returns:
+        Title-cased string, e.g. ``Ps Cancer``.
+    """
+    return (
+        dataset_id.replace("_", " ").replace("-", " ").title()
+    )
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Content loaders (intro, footer, logo)
+# ──────────────────────────────────────────────────────────────────────
+
+def _load_intro_html() -> str:
+    """Load and render ``content/intro.md`` to HTML.
+
+    Returns:
+        Rendered HTML string, or ``""`` if the file is absent.
+    """
     if INTRO_MD.exists():
-        return md_to_html_intro(INTRO_MD.read_text(encoding="utf-8"))
+        return _md_to_html(INTRO_MD.read_text(encoding="utf-8"))
     return ""
 
 
-def load_footer_html() -> str:
-    if FOOTER_MD.exists():
-        html = md_to_html_intro(FOOTER_MD.read_text(encoding="utf-8"))
-        # Inject logo if it exists and footer references it as [LOGO]
-        logo_uri = load_logo_data_uri()
-        if logo_uri and "[LOGO]" in html:
-            logo_html = f'<img src="{logo_uri}" alt="Logo" style="height:64px;width:auto;display:block;margin-bottom:1rem;" />'
-            html = html.replace("[LOGO]", logo_html)
-        return html
-    return ""
+def _load_footer_html() -> str:
+    """Load and render ``content/footer.md`` to HTML.
 
-# -------- Provenance --------
+    If the footer markdown contains the ``[LOGO]`` placeholder and a
+    logo image exists in ``content/``, the placeholder is replaced
+    with an embedded ``<img>`` tag.
 
-def format_provenance(prov_per_dataset: Dict[str, List[Tuple[str, str]]]) -> str:
+    Returns:
+        Rendered HTML string, or ``""`` if the file is absent.
     """
-    Returns a multi-line string:
-      <file> <sha256>
-      ...
-      Combined SHA-256: <digest-of-digests>
-    Combined digest is SHA-256 of the concatenated individual hex digests
-    in stable order.
+    if not FOOTER_MD.exists():
+        return ""
+    html = _md_to_html(FOOTER_MD.read_text(encoding="utf-8"))
+    logo_uri = _load_logo_data_uri()
+    if logo_uri and "[LOGO]" in html:
+        logo_tag = (
+            f'<img src="{logo_uri}" alt="Logo" '
+            f'style="height:64px;width:auto;'
+            f'display:block;margin-bottom:1rem;" />'
+        )
+        html = html.replace("[LOGO]", logo_tag)
+    return html
+
+
+def _load_logo_data_uri() -> str:
+    """Encode the logo image as a data-URI for embedding in HTML.
+
+    Supports PNG, JPEG, and SVG formats.
+
+    Returns:
+        A ``data:`` URI string, or ``""`` if no logo file exists.
     """
-    lines: List[str] = []
-    all_hexes: List[str] = []
+    if not LOGO_PATH.exists():
+        return ""
+    data = LOGO_PATH.read_bytes()
+    suffix = LOGO_PATH.suffix.lower()
 
-    # Also include variables_config.yaml and intro.md if present
-    supplemental_files: List[Path] = []
-    if VARIABLES_CONFIG.exists():
-        supplemental_files.append(VARIABLES_CONFIG)
-    if INTRO_MD.exists():
-        supplemental_files.append(INTRO_MD)
-    if FOOTER_MD.exists():
-        supplemental_files.append(FOOTER_MD)
-    if LOGO_PATH.exists():
-        supplemental_files.append(LOGO_PATH)
+    if suffix == ".png":
+        mime = "image/png"
+    elif suffix in (".jpg", ".jpeg"):
+        mime = "image/jpeg"
+    elif suffix == ".svg":
+        try:
+            text = data.decode("utf-8")
+            return f"data:image/svg+xml;utf8,{text}"
+        except Exception:
+            mime = "image/svg+xml"
+    else:
+        mime = "application/octet-stream"
 
-    # Per-dataset YAMLs and MDs
-    for ds_id in sorted(prov_per_dataset.keys()):
-        for fname, digest in prov_per_dataset[ds_id]:
-            lines.append(f"{fname} {digest}")
+    b64 = base64.b64encode(data).decode("ascii")
+    return f"data:{mime};base64,{b64}"
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Provenance
+# ──────────────────────────────────────────────────────────────────────
+
+def _format_provenance(
+    provenance_per_dataset: dict[str, list[tuple[str, str]]],
+) -> str:
+    """Format a provenance manifest from per-dataset hash lists.
+
+    The manifest lists each input file and its SHA-256 digest, followed
+    by a combined digest computed over all individual hex digests in
+    stable order.
+
+    Args:
+        provenance_per_dataset: Mapping of dataset-ID -> list of
+            ``(filename, sha256_hex)`` pairs.
+
+    Returns:
+        Multi-line string suitable for embedding in the output HTML.
+    """
+    lines: list[str] = []
+    all_hexes: list[str] = []
+
+    # Supplemental config / content files.
+    supplemental_files: list[Path] = [
+        p
+        for p in (VARIABLES_CONFIG, INTRO_MD, FOOTER_MD, LOGO_PATH)
+        if p.exists()
+    ]
+
+    # Per-dataset YAMLs and MDs.
+    for dataset_id in sorted(provenance_per_dataset):
+        for filename, digest in provenance_per_dataset[dataset_id]:
+            lines.append(f"{filename} {digest}")
             all_hexes.append(digest)
 
-    # Supplemental
-    for p in supplemental_files:
-        h = sha256_file(p)
-        lines.append(f"{p.name} {h}")
-        all_hexes.append(h)
+    # Supplemental files.
+    for supplemental_path in supplemental_files:
+        digest = _sha256_file(supplemental_path)
+        lines.append(f"{supplemental_path.name} {digest}")
+        all_hexes.append(digest)
 
-    combined = sha256_bytes("".join(all_hexes).encode("utf-8")) if all_hexes else ""
-    if combined:
+    if all_hexes:
+        combined = _sha256_bytes(
+            "".join(all_hexes).encode("utf-8"),
+        )
         lines.append(f"Combined SHA-256: {combined}")
 
     return "\n".join(lines)
 
 
-def load_datasets_config() -> List[Dict[str, Any]]:
-    """
-    Loads `config/datasets_config.yaml` and returns a list of groups:
-      - heading: str
-      - datasets: list[str]
+# ──────────────────────────────────────────────────────────────────────
+# Dataset-group ordering
+# ──────────────────────────────────────────────────────────────────────
 
-    If the config file is missing or malformed, returns an empty list.
+def _load_datasets_config() -> list[_YamlDict]:
+    """Load display-group ordering from ``datasets_config.yaml``.
+
+    Returns:
+        A list of dicts, each with ``heading`` (str) and ``datasets``
+        (list of dataset-ID strings).  Returns ``[]`` if the config
+        file is missing or malformed.
     """
     if not DATASETS_CONFIG.exists():
         return []
-    cfg = read_yaml(DATASETS_CONFIG) or {}
-    groups = cfg.get("groups") or []
-    # Normalize: ensure each group is a mapping with heading and datasets list
-    out: List[Dict[str, Any]] = []
-    if isinstance(groups, list):
-        for g in groups:
-            if not isinstance(g, dict):
+    config = _read_yaml(DATASETS_CONFIG) or {}
+    raw_groups = config.get("groups") or []
+
+    result: list[_YamlDict] = []
+    if isinstance(raw_groups, list):
+        for group_entry in raw_groups:
+            if not isinstance(group_entry, dict):
                 continue
-            heading = g.get("heading") or g.get("label") or ""
-            datasets = g.get("datasets") or g.get("ids") or []
+            heading = (
+                group_entry.get("heading")
+                or group_entry.get("label")
+                or ""
+            )
+            datasets = (
+                group_entry.get("datasets")
+                or group_entry.get("ids")
+                or []
+            )
             if isinstance(datasets, str):
                 datasets = [datasets]
             if not isinstance(datasets, list):
                 datasets = []
-            out.append({"heading": heading, "datasets": list(datasets)})
-    return out
+            result.append({
+                "heading": heading,
+                "datasets": list(datasets),
+            })
+    return result
 
-# -------- Template rendering --------
 
-def get_git_sha() -> str:
-    """
-    Get the current git commit SHA. Returns empty string if not a git repo
-    or if git is not available.
+# ──────────────────────────────────────────────────────────────────────
+# Template rendering
+# ──────────────────────────────────────────────────────────────────────
+
+def _get_git_sha() -> str:
+    """Return the current ``HEAD`` commit SHA, or ``""`` on failure.
+
+    Fails gracefully when run outside a Git repository or when the
+    ``git`` binary is not available.
     """
     try:
         result = subprocess.run(
@@ -671,334 +1137,556 @@ def get_git_sha() -> str:
             cwd=str(ROOT_DIR),
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
         )
         if result.returncode == 0:
             return result.stdout.strip()
     except Exception:
-        pass
+        logger.debug("Could not read git HEAD.", exc_info=True)
     return ""
 
-def get_build_date() -> str:
-    """
-    Get the current build date and time in ISO format, rounded to whole seconds.
-    """
-    return datetime.now().replace(microsecond=0).isoformat()
 
-def render_html(datasets: List[Dict[str, Any]], intro_html: str, provenance_text: str) -> str:
-    env = Environment(
-        loader=FileSystemLoader(str(TEMPLATES_DIR)),
-        autoescape=select_autoescape(["html", "xml"])
-    )
-    tmpl = env.get_template(TEMPLATE_NAME)
-    data_json = json.dumps(datasets, ensure_ascii=False, separators=(",", ":"))
+def _get_build_date(
+    input_files: list[Path] | None = None,
+) -> str:
+    """Determine the build timestamp in a reproducible way.
 
-    html = tmpl.render(
-        data_json=data_json,
-        intro_html=intro_html,
-        git_sha=get_git_sha(),
-        build_date=get_build_date(),
-        footer_html=load_footer_html(),
-        logo_data_uri=load_logo_data_uri()
-    )
-    return html
+    Resolution order:
 
+    1. **``SOURCE_DATE_EPOCH``** environment variable (integer Unix
+       timestamp).  This is the `reproducible-builds.org`_ standard
+       and is the recommended mechanism for CI / release builds.
+    2. **Newest input-file mtime** — if *input_files* is supplied and
+       non-empty, use the most recent modification time.
+    3. **Current wall-clock time** (fallback for local development).
 
-# -------- Excel export --------
-
-def export_to_excel(datasets_raw: List[Dict[str, Any]], output_path: Path) -> None:
-    """
-    Export processed variable lists to Excel (.xlsx).
-    Each dataset gets its own sheet with columns (in desired order):
-    - Selection: empty column for users to mark selected variables
-    - Label: display label
-    - Notes: description/notes
-    - Variable name: variable/group name (previously "Name")
-    - Source variable name: source variable name (previously "Source")
-    - Categories: comma-separated list of categories
-    - Grouped: Yes/No if this is a synthetic group variable
-    - Members: for groups, comma-separated list of member variable names
+    .. _reproducible-builds.org:
+       https://reproducible-builds.org/docs/source-date-epoch/
 
     Args:
-        datasets_raw: The raw datasets list (as assembled in build()).
-                     Can be a flat list or a list of grouped datasets with "heading" keys.
-        output_path: Path where the Excel file should be written.
+        input_files: Optional list of paths whose mtimes should be
+            considered for deterministic timestamps.
+
+    Returns:
+        ISO-8601 datetime string (whole seconds, UTC when derived
+        from ``SOURCE_DATE_EPOCH``).
+    """
+    epoch = os.environ.get("SOURCE_DATE_EPOCH")
+    if epoch is not None:
+        try:
+            return (
+                datetime.fromtimestamp(
+                    int(epoch), tz=timezone.utc,
+                )
+                .replace(microsecond=0)
+                .isoformat()
+            )
+        except (ValueError, OSError, OverflowError):
+            logger.warning(
+                "Invalid SOURCE_DATE_EPOCH='%s'; ignoring.",
+                epoch,
+            )
+
+    if input_files:
+        try:
+            newest = max(
+                p.stat().st_mtime
+                for p in input_files
+                if p.exists()
+            )
+            return (
+                datetime.fromtimestamp(newest)
+                .replace(microsecond=0)
+                .isoformat()
+            )
+        except (ValueError, OSError):
+            pass
+
+    return datetime.now().replace(microsecond=0).isoformat()
+
+
+def _render_html(
+    datasets: list[_YamlDict],
+    intro_html: str,
+    provenance_text: str,
+    build_date: str,
+) -> str:
+    """Render the Jinja2 template to a complete HTML string.
+
+    Args:
+        datasets: Assembled dataset list (grouped or flat).
+        intro_html: Pre-rendered HTML for the introduction section.
+        provenance_text: Multi-line provenance manifest.
+        build_date: ISO-8601 build timestamp.
+
+    Returns:
+        Complete HTML string ready for writing to disk.
+    """
+    env = Environment(
+        loader=FileSystemLoader(str(TEMPLATES_DIR)),
+        autoescape=select_autoescape(["html", "xml"]),
+    )
+    template = env.get_template(TEMPLATE_NAME)
+    data_json = json.dumps(
+        datasets, ensure_ascii=False, separators=(",", ":"),
+    )
+
+    return template.render(
+        data_json=data_json,
+        intro_html=intro_html,
+        git_sha=_get_git_sha(),
+        build_date=build_date,
+        footer_html=_load_footer_html(),
+        logo_data_uri=_load_logo_data_uri(),
+    )
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Excel export
+# ──────────────────────────────────────────────────────────────────────
+
+def _sanitize_sheet_name(name: str) -> str:
+    r"""Sanitize a string for use as an Excel sheet name.
+
+    Excel forbids ``[ ] : * ? / \`` and limits names to 31 chars.
+
+    Args:
+        name: Proposed sheet name.
+
+    Returns:
+        Sanitised name (max 31 chars, problematic chars removed).
+    """
+    sanitized = re.sub(r"[\[\]:*?/\\]", "", name)
+    sanitized = sanitized[:31].strip()
+    return sanitized or "Sheet"
+
+
+def _auto_adjust_column_widths(worksheet: Worksheet) -> None:
+    """Resize columns to fit their content (capped at 50 chars).
+
+    Args:
+        worksheet: An ``openpyxl`` worksheet object.
+    """
+    for column in worksheet.columns:
+        max_length = 0
+        col_letter = get_column_letter(
+            column[0].column or 1,
+        )
+        for cell in column:
+            try:
+                if cell.value:
+                    max_length = max(
+                        max_length, len(str(cell.value)),
+                    )
+            except (TypeError, ValueError):
+                pass
+        worksheet.column_dimensions[col_letter].width = min(
+            max_length + 2, 50,
+        )
+
+
+def _patch_xlsx_modified(xlsx_path: Path, stamp: datetime) -> None:
+    """Rewrite the ``modified`` timestamp inside a saved XLSX file.
+
+    openpyxl unconditionally sets ``modified`` to ``utcnow()`` in its
+    ``save_workbook`` helper.  This function opens the XLSX (which is a
+    ZIP archive), updates ``docProps/core.xml`` with *stamp*, and
+    writes the archive back in place.
+
+    Args:
+        xlsx_path: Path to the ``.xlsx`` file.
+        stamp: The datetime to use for the ``modified`` field.
+    """
+    import re as _re
+    import zipfile
+
+    iso = stamp.strftime("%Y-%m-%dT%H:%M:%S")
+    if stamp.tzinfo is not None:
+        iso += "Z"
+
+    # Read original archive members.
+    members: dict[str, bytes] = {}
+    with zipfile.ZipFile(xlsx_path, "r") as zin:
+        for info in zin.infolist():
+            members[info.filename] = zin.read(info.filename)
+
+    # Patch core.xml.
+    core_key = "docProps/core.xml"
+    if core_key in members:
+        xml_text = members[core_key].decode("utf-8")
+        xml_text = _re.sub(
+            r"(<dcterms:modified[^>]*>)[^<]*(</dcterms:modified>)",
+            rf"\g<1>{iso}\g<2>",
+            xml_text,
+        )
+        members[core_key] = xml_text.encode("utf-8")
+
+    # Rewrite the archive.
+    with zipfile.ZipFile(xlsx_path, "w", zipfile.ZIP_DEFLATED) as zout:
+        for name, data in members.items():
+            zout.writestr(name, data)
+
+
+def _export_to_excel(
+    datasets_raw: list[_YamlDict],
+    output_path: Path,
+    build_date: str = "",
+) -> None:
+    """Export datasets to a formatted Excel workbook.
+
+    Each dataset occupies its own sheet.  Columns:
+
+    ===================== =============================================
+    Selection             Empty; users mark chosen variables with "x".
+    Label                 Human-readable variable name.
+    Notes                 Variable description.
+    Variable name         YAML key (unique identifier).
+    Source variable name  Original database variable name.
+    Categories            Comma-separated list.
+    Grouped               ``Yes`` / ``No``.
+    Members               For groups: member variable names.
+    ===================== =============================================
+
+    Args:
+        datasets_raw: Assembled datasets list (grouped or flat).
+        output_path: Destination ``.xlsx`` path.
+        build_date: Deterministic date string (``YYYY-MM-DD``) used to
+            pin the workbook's ``created`` and ``modified`` metadata.
     """
     if not datasets_raw:
-        print("Warning: No datasets to export to Excel.")
+        logger.warning("No datasets to export to Excel.")
         return
 
-    wb = Workbook()
-    wb.remove(wb.active)  # Remove default sheet
+    workbook = Workbook()
+    default_sheet = workbook.active
+    if default_sheet is not None:
+        workbook.remove(default_sheet)
 
-    # Define styles for headers
+    # Pin document timestamps for reproducible builds.  openpyxl's
+    # save_workbook() unconditionally overwrites ``modified`` with
+    # utcnow(), so we keep a reference and restore it after save.
+    pinned_stamp: datetime | None = None
+    if build_date:
+        pinned_stamp = datetime.fromisoformat(build_date)
+        workbook.properties = DocumentProperties(
+            created=pinned_stamp,
+            modified=pinned_stamp,
+        )
+
     header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-    header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    border = Border(
+    header_fill = PatternFill(
+        start_color="366092",
+        end_color="366092",
+        fill_type="solid",
+    )
+    header_alignment = Alignment(
+        horizontal="center",
+        vertical="center",
+        wrap_text=True,
+    )
+    cell_border = Border(
         left=Side(style="thin"),
         right=Side(style="thin"),
         top=Side(style="thin"),
-        bottom=Side(style="thin")
+        bottom=Side(style="thin"),
     )
 
-    # Extract flat list of datasets from potentially grouped structure
-    flat_datasets: List[Dict[str, Any]] = []
+    # Flatten grouped structure into a list of dataset dicts.
+    flat_datasets: list[_YamlDict] = []
     for item in datasets_raw:
-        if isinstance(item, dict):
-            # Check if this is a group object (has 'heading' and 'datasets' keys)
-            if "heading" in item and "datasets" in item:
-                # This is a grouped structure; extract the datasets
-                for ds in item.get("datasets", []):
-                    if isinstance(ds, dict):
-                        flat_datasets.append(ds)
-            elif "id" in item and "variables" in item:
-                # This is a standalone dataset
-                flat_datasets.append(item)
+        if not isinstance(item, dict):
+            continue
+        if "heading" in item and "datasets" in item:
+            for dataset_entry in item.get("datasets", []):
+                if isinstance(dataset_entry, dict):
+                    flat_datasets.append(dataset_entry)
+        elif "id" in item and "variables" in item:
+            flat_datasets.append(item)
 
-    # Create a sheet for each dataset
+    headers = [
+        "Selection",
+        "Label",
+        "Notes",
+        "Variable name",
+        "Source variable name",
+        "Categories",
+        "Grouped",
+        "Members",
+    ]
+
     for dataset in flat_datasets:
-        ds_id = dataset.get("id", "unknown")
-        ds_title = dataset.get("title", ds_id)
+        title: str = str(
+            dataset.get("title", dataset.get("id", "unknown"))
+        )
         variables = dataset.get("variables", [])
+        worksheet = workbook.create_sheet(
+            title=_sanitize_sheet_name(title),
+        )
 
-        # Sanitize sheet name (Excel has character and length restrictions)
-        sheet_name = _sanitize_sheet_name(ds_title)
-
-        ws = wb.create_sheet(title=sheet_name)
-
-        # Define column headers (ordered to match HTML tables more closely)
-        headers = [
-            "Selection",
-            "Label",
-            "Notes",
-            "Variable name",
-            "Source variable name",
-            "Categories",
-            "Grouped",
-            "Members",
-        ]
-
-        # Write headers
+        # Write header row.
         for col_num, header_text in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col_num)
+            cell = worksheet.cell(row=1, column=col_num)
             cell.value = header_text
             cell.font = header_font
             cell.fill = header_fill
             cell.alignment = header_alignment
-            cell.border = border
+            cell.border = cell_border
 
-        # Write variable rows
-        for row_num, var in enumerate(variables, 2):
-            if not isinstance(var, dict):
+        # Write variable rows.
+        for row_num, var_info in enumerate(variables, 2):
+            if not isinstance(var_info, dict):
                 continue
 
-            var_name = var.get("name", "")
-            var_label = var.get("label", "")
-            var_notes = var.get("notes", "")
-            var_source = var.get("source", "")
-            var_categories = var.get("categories", [])
-            is_group = var.get("is_group", False)
-            members = var.get("members", [])
-
-            # Format lists as comma-separated strings
-            categories_str = ", ".join(var_categories) if isinstance(var_categories, list) else str(var_categories)
-            members_str = ", ".join(members) if isinstance(members, list) else str(members)
-
-            # Build row data in the new order; selection left blank for user input
+            var_categories = var_info.get("categories", [])
+            members = var_info.get("members", [])
             row_data = [
-                "",  # Selection
-                var_label,
-                var_notes,
-                var_name,
-                var_source,
-                categories_str,
-                "Yes" if is_group else "No",
-                members_str,
+                "",  # Selection (left blank for user input)
+                var_info.get("label", ""),
+                var_info.get("notes", ""),
+                var_info.get("name", ""),
+                var_info.get("source", ""),
+                (
+                    ", ".join(var_categories)
+                    if isinstance(var_categories, list)
+                    else str(var_categories)
+                ),
+                (
+                    "Yes"
+                    if var_info.get("is_group", False)
+                    else "No"
+                ),
+                (
+                    ", ".join(members)
+                    if isinstance(members, list)
+                    else str(members)
+                ),
             ]
 
-            # Write row data
             for col_num, cell_value in enumerate(row_data, 1):
-                cell = ws.cell(row=row_num, column=col_num)
+                cell = worksheet.cell(
+                    row=row_num, column=col_num,
+                )
                 cell.value = cell_value
-                cell.alignment = Alignment(vertical="top", wrap_text=True)
-                cell.border = border
+                cell.alignment = Alignment(
+                    vertical="top", wrap_text=True,
+                )
+                cell.border = cell_border
 
-        # Auto-adjust column widths
-        _auto_adjust_column_widths(ws)
+        _auto_adjust_column_widths(worksheet)
 
-    # Save workbook
-    wb.save(output_path)
-    print(f"✓ Wrote {output_path}")
-
-
-def _sanitize_sheet_name(name: str) -> str:
-    """
-    Sanitize a dataset title for use as an Excel sheet name.
-    Excel sheet names have restrictions:
-    - Max 31 characters
-    - Cannot contain: [ ] : * ? /
-    """
-    # Remove or replace problematic characters
-    sanitized = re.sub(r'[\[\]:*?/\\]', '', name)
-    # Limit to 31 characters
-    sanitized = sanitized[:31].strip()
-    # If empty after sanitization, use a default
-    if not sanitized:
-        sanitized = "Sheet"
-    return sanitized
+    workbook.save(output_path)
+    # Restore the pinned ``modified`` timestamp that openpyxl
+    # overwrites during save, then re-serialise core.xml in-place.
+    if pinned_stamp is not None:
+        _patch_xlsx_modified(output_path, pinned_stamp)
+    logger.info("Wrote %s", output_path)
 
 
-def _auto_adjust_column_widths(ws) -> None:
-    """
-    Auto-adjust column widths to fit content.
-    """
-    for column in ws.columns:
-        max_length = 0
-        column_letter = get_column_letter(column[0].column)
-        for cell in column:
-            try:
-                if cell.value:
-                    max_length = max(max_length, len(str(cell.value)))
-            except Exception:
-                pass
-        # Set column width with some padding
-        adjusted_width = min(max_length + 2, 50)  # Cap at 50 to keep readable
-        ws.column_dimensions[column_letter].width = adjusted_width
+# ──────────────────────────────────────────────────────────────────────
+# Static file copy
+# ──────────────────────────────────────────────────────────────────────
 
+def _copy_static_files(dist_dir: Path) -> None:
+    """Copy static assets (e.g. Word documents) to the output dir.
 
-def load_logo_data_uri() -> str:
-    """
-    If `content/logo.*` exists, return a base64 data URI for embedding.
-    Otherwise return empty string.
-    """
-    if not LOGO_PATH.exists():
-        return ""
-    data = LOGO_PATH.read_bytes()
-    # Only support common raster types — infer from suffix
-    suffix = LOGO_PATH.suffix.lower()
-    if suffix in ('.png',):
-        mime = 'image/png'
-    elif suffix in ('.jpg', '.jpeg'):
-        mime = 'image/jpeg'
-    elif suffix in ('.svg',):
-        # SVG is text; return raw svg string (no base64) to keep it crisp
-        try:
-            txt = data.decode('utf-8')
-            return f"data:image/svg+xml;utf8,{txt}"
-        except Exception:
-            mime = 'image/svg+xml'
-    else:
-        mime = 'application/octet-stream'
-    import base64
-    b64 = base64.b64encode(data).decode('ascii')
-    return f"data:{mime};base64,{b64}"
-
-def copy_static_files() -> None:
-    """
-    Copy static files (e.g., Word documents) from ./static to ./dist/
+    Args:
+        dist_dir: Destination directory (typically ``dist/``).
     """
     if not STATIC_DIR.exists():
         return
     for src in STATIC_DIR.iterdir():
         if src.is_file():
-            dst = DIST_DIR / src.name
-            import shutil
-            shutil.copy2(src, dst)
-            print(f"✓ Copied {src.name} to dist/")
+            shutil.copy2(src, dist_dir / src.name)
+            logger.info(
+                "Copied %s to %s/", src.name, dist_dir.name,
+            )
 
-# -------- Build entrypoint --------
 
-def build() -> None:
-    DIST_DIR.mkdir(parents=True, exist_ok=True)
+# ──────────────────────────────────────────────────────────────────────
+# Build entry point
+# ──────────────────────────────────────────────────────────────────────
 
-    groups_cfg, ignore_names, ignore_name_patterns, ignore_tags, ignore_categories = load_variables_config()
+def build(output_dir: Path | None = None) -> None:
+    """Run the full build pipeline.
 
-    discovered = discover_datasets()
-    datasets: List[Dict[str, Any]] = []
-    prov: Dict[str, List[Tuple[str, str]]] = {}
+    1. Load configuration and discover datasets.
+    2. Assemble each dataset (normalise, filter, group).
+    3. Render HTML and export Excel.
+    4. Copy static files to the output directory.
 
-    # Load optional grouping/ordering configuration for datasets
-    ds_groups_cfg = load_datasets_config()
+    Args:
+        output_dir: Override the default output directory
+            (``./dist``).  Created automatically if absent.
+    """
+    dist_dir = output_dir or DIST_DIR
+    dist_dir.mkdir(parents=True, exist_ok=True)
 
-    # Keep a mutable set of discovered ids to track which have been consumed
+    (
+        groups_config,
+        ignore_names,
+        ignore_name_patterns,
+        ignore_tags,
+        ignore_categories,
+    ) = _load_variables_config()
+
+    discovered = _discover_datasets()
+    datasets: list[_YamlDict] = []
+    provenance: dict[str, list[tuple[str, str]]] = {}
+
+    # Collect every input file path for deterministic timestamping.
+    all_input_files: list[Path] = []
+
+    ds_groups_cfg = _load_datasets_config()
     remaining = set(discovered.keys())
 
+    def _assemble_and_record(
+        dataset_id: str,
+    ) -> _YamlDict:
+        """Assemble one dataset and record its provenance."""
+        paths = discovered[dataset_id]
+        dataset, dataset_prov = _assemble_dataset(
+            dataset_id=dataset_id,
+            codebook_path=paths.get("codebook"),
+            meta_path=paths.get("meta"),
+            groups_config=groups_config,
+            ignore_names=ignore_names,
+            ignore_name_patterns=ignore_name_patterns,
+            ignore_tags=ignore_tags,
+            ignore_categories=ignore_categories,
+        )
+        provenance[dataset_id] = dataset_prov
+        remaining.discard(dataset_id)
+        # Track input files for timestamp derivation.
+        for key in ("codebook", "meta"):
+            input_path = paths.get(key)
+            if input_path:
+                all_input_files.append(input_path)
+        md_path = _dataset_md_path_for(
+            dataset_id, paths.get("meta"),
+        )
+        if md_path.exists():
+            all_input_files.append(md_path)
+        return dataset
+
     if ds_groups_cfg:
-        # For each configured group, assemble datasets in the specified order
         for group in ds_groups_cfg:
             heading = group.get("heading") or ""
-            group_list: List[Dict[str, Any]] = []
-            for did in group.get("datasets", []) or []:
-                if did not in discovered:
-                    print(f"Warning: dataset '{did}' listed in {DATASETS_CONFIG.name} not found in data directory, ignoring.")
+            group_list: list[_YamlDict] = []
+            for dataset_id in group.get("datasets") or []:
+                if dataset_id not in discovered:
+                    logger.warning(
+                        "Dataset '%s' listed in %s not "
+                        "found in data directory; skipping.",
+                        dataset_id,
+                        DATASETS_CONFIG.name,
+                    )
                     continue
-                paths = discovered[did]
-                ds, p = assemble_dataset(
-                    ds_id=did,
-                    codebook_path=paths.get("codebook"),
-                    meta_path=paths.get("meta"),
-                    groups_cfg=groups_cfg,
-                    ignore_names=ignore_names,
-                    ignore_name_patterns=ignore_name_patterns,
-                    ignore_tags=ignore_tags,
-                    ignore_categories=ignore_categories,
+                group_list.append(
+                    _assemble_and_record(dataset_id),
                 )
-                group_list.append(ds)
-                prov[did] = p
-                remaining.discard(did)
-            # Only append non-empty groups
             if group_list:
-                datasets.append({"heading": heading, "datasets": group_list})
+                datasets.append({
+                    "heading": heading,
+                    "datasets": group_list,
+                })
 
-    # Append remaining (ungrouped) datasets in alphabetical order
+    # Append remaining (ungrouped) datasets alphabetically.
     if remaining:
-        others = []
-        for ds_id in sorted(remaining):
-            paths = discovered[ds_id]
-            ds, p = assemble_dataset(
-                ds_id=ds_id,
-                codebook_path=paths.get("codebook"),
-                meta_path=paths.get("meta"),
-                groups_cfg=groups_cfg,
-                ignore_names=ignore_names,
-                ignore_name_patterns=ignore_name_patterns,
-                ignore_tags=ignore_tags,
-                ignore_categories=ignore_categories,
-            )
-            others.append(ds)
-            prov[ds_id] = p
-        # If we had configured groups, put ungrouped under an "Other" heading,
-        # otherwise simply present a flat list (legacy behavior).
+        others = [
+            _assemble_and_record(dataset_id)
+            for dataset_id in sorted(remaining)
+        ]
         if ds_groups_cfg:
-            datasets.append({"heading": "Other datasets", "datasets": others})
+            datasets.append({
+                "heading": "Other datasets",
+                "datasets": others,
+            })
         else:
-            # legacy: flat list expected by template
             datasets = others
 
-    intro_html = load_intro_html()
-    # Replace placeholder in intro HTML with a relative link to the Excel file
+    # Add supplemental config / content files to the input list.
+    for path in (VARIABLES_CONFIG, INTRO_MD, FOOTER_MD, LOGO_PATH):
+        if path.exists():
+            all_input_files.append(path)
+
+    intro_html = _load_intro_html()
     excel_filename = "variables_browser.xlsx"
     if intro_html and "[EXCEL-SELECTIONS]" in intro_html:
-        excel_link_html = f'<a href="{excel_filename}">Download Excel file</a>'
-        intro_html = intro_html.replace("[EXCEL-SELECTIONS]", excel_link_html)
+        intro_html = intro_html.replace(
+            "[EXCEL-SELECTIONS]",
+            f'<a href="{excel_filename}">Download Excel file</a>',
+        )
 
-    provenance_text = format_provenance(prov)
+    provenance_text = _format_provenance(provenance)
+    build_date = _get_build_date(all_input_files)
 
-    html = render_html(datasets, intro_html, provenance_text)
-    OUTPUT_HTML.write_text(html, encoding="utf-8")
-    print(f"✓ Wrote {OUTPUT_HTML}")
+    html = _render_html(
+        datasets, intro_html, provenance_text, build_date,
+    )
+    output_html = dist_dir / OUTPUT_HTML_NAME
+    output_html.write_text(html, encoding="utf-8")
+    logger.info("Wrote %s", output_html)
 
-    # Export to Excel (file name used above for the intro link)
-    excel_output = DIST_DIR / excel_filename
-    export_to_excel(datasets, excel_output)
-
-    # Copy static files (Word docs, etc.) to dist/
-    copy_static_files()
+    _export_to_excel(datasets, dist_dir / excel_filename, build_date)
+    _copy_static_files(dist_dir)
 
 
-# -------- CLI --------
+# ──────────────────────────────────────────────────────────────────────
+# CLI
+# ──────────────────────────────────────────────────────────────────────
+
+def _parse_args() -> argparse.Namespace:
+    """Parse command-line arguments.
+
+    Returns:
+        Parsed :class:`argparse.Namespace`.
+    """
+    parser = argparse.ArgumentParser(
+        description=(
+            "Build the PREDICT data-portal HTML and Excel files."
+        ),
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=None,
+        help=(
+            "Output directory (default: ./dist). "
+            "Created automatically if absent."
+        ),
+    )
+    verbosity = parser.add_mutually_exclusive_group()
+    verbosity.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Enable debug-level logging.",
+    )
+    verbosity.add_argument(
+        "--quiet", "-q",
+        action="store_true",
+        help="Suppress info messages; show warnings only.",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    """CLI entry point: parse arguments, configure logging, build."""
+    args = _parse_args()
+
+    if args.verbose:
+        level = logging.DEBUG
+    elif args.quiet:
+        level = logging.WARNING
+    else:
+        level = logging.INFO
+
+    logging.basicConfig(
+        format="%(levelname)s: %(message)s",
+        level=level,
+    )
+
+    build(output_dir=args.output_dir)
+
 
 if __name__ == "__main__":
-    build()
-
+    main()

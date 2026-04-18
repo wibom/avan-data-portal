@@ -1,6 +1,9 @@
 # Normalize text files
 * text=auto
 
-# Explicitly enforce LF for scripts
+# Explicitly enforce LF for scripts and config
 *.sh text eol=lf
 *.py text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
