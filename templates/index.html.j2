@@ -140,505 +140,826 @@
   <script id="dataset-json" type="application/json">{{ data_json | safe }}</script>
 
   <script>
-  (function(){
+  (function () {
+    "use strict";
+
+    /* ── Constants ──────────────────────────────────────────── */
+
+    /** CSS selectors used throughout the application. */
+    const SEL = {
+      datasetJson: "#dataset-json",
+      app: "#app",
+      sidebarToc: "#sidebar-toc",
+      cartCount: "#cart-count",
+      downloadCsv: "#download-csv",
+      clearSelection: "#clear-selection",
+      cart: ".cart",
+      toggleAll: '[data-action="toggle-all"]',
+      filterCat: 'select[data-role="filterCat"]',
+      search: 'input[type="search"]',
+      notesPreview: ".var-notes-preview",
+      notesToggle: ".var-notes-toggle",
+      chip: ".chip[data-cat]",
+    };
+
+    /** CSS class names toggled by JS. */
+    const CLS = {
+      collapsed: "is-collapsed",
+      active: "active",
+    };
+
+    /** UI label strings. */
+    const TEXT = {
+      showVars: "Show variables",
+      hideVars: "Hide variables",
+      more: "More\u2026",
+      less: "Less",
+    };
+
+    /* ── State ──────────────────────────────────────────────── */
+
     const state = { datasets: [], selected: new Map() };
-    const $ = (s,r=document)=>r.querySelector(s);
-    const $all = (s,r=document)=>Array.from(r.querySelectorAll(s));
 
-    function parseData(){ try{ return JSON.parse($('#dataset-json').textContent.trim())||[] }catch(e){ return []; } }
-    function escapeHTML(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
-    function csvEscape(v){ const s=String(v).replace(/\r?\n/g,' '); return (s.includes(',')||s.includes('"'))? '"'+s.replace(/"/g,'""')+'"': s; }
+    /* ── DOM helpers ────────────────────────────────────────── */
 
-    // --- Block-level Markdown renderer for descriptions ---
-    // DEPRECATED: Markdown is now converted server-side. Kept for backwards compatibility.
-    function markdownToBlockHtml(input){
-      return input;  // Return as-is since it's pre-rendered
+    const $ = (sel, root = document) => root.querySelector(sel);
+    const $all = (sel, root = document) =>
+      Array.from(root.querySelectorAll(sel));
+
+    /* ── Pure utilities ─────────────────────────────────────── */
+
+    /** Parse the embedded JSON data blob. */
+    function parseData() {
+      const el = $(SEL.datasetJson);
+      if (!el) return [];
+      try {
+        return JSON.parse(el.textContent.trim()) || [];
+      } catch {
+        return [];
+      }
     }
 
-    // Helper function to process list blocks with nesting support
-    // DEPRECATED: Markdown is now converted server-side.
-    function processListBlock(lines){
-      return '';  // No longer used
+    /** Escape a value for safe insertion into HTML. */
+    function escapeHTML(s) {
+      if (s == null) return "";
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
     }
 
-    // --- Inline Markdown renderer for text within blocks ---
-    // Supports: [text](url), <url>, `code`, **strong**, *em*, __strong__, _em_, ~~del~~, and auto-linking bare URLs.
-    function markdownToInlineHtml(input){
-      if (input == null) return '';
+    /** Escape a value for inclusion in a CSV cell. */
+    function csvEscape(v) {
+      if (v == null) return "";
+      const s = String(v).replace(/\r?\n/g, " ");
+      return s.includes(",") || s.includes('"')
+        ? '"' + s.replace(/"/g, '""') + '"'
+        : s;
+    }
+
+    /* ── Inline Markdown ────────────────────────────────────── */
+
+    /**
+     * Convert lightweight inline Markdown to HTML.
+     *
+     * Supports: [text](url), <url>, `code`, **strong**, *em*,
+     * __strong__, _em_, ~~del~~, and auto-linking bare URLs.
+     */
+    function markdownToInlineHtml(input) {
+      if (input == null) return "";
       let html = String(input);
 
-      // Links: <url> format (for bare URLs in angle brackets)
-      html = html.replace(/<(https?:\/\/[^\s>]+)>/g, (m, url) =>
-        `<a href="${url}" target="_blank" rel="noopener">${escapeHTML(url)}</a>`);
+      // Angle-bracket URLs: <https://…>
+      html = html.replace(
+        /<(https?:\/\/[^\s>]+)>/g,
+        (_, url) =>
+          '<a href="' + url + '" target="_blank" rel="noopener">' +
+          escapeHTML(url) + "</a>"
+      );
 
-      // Links [text](url)
-      html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (m, text, url) =>
-        `<a href="${url}" target="_blank" rel="noopener">${escapeHTML(text)}</a>`);
+      // Markdown links: [text](url)
+      html = html.replace(
+        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+        (_, text, url) =>
+          '<a href="' + url + '" target="_blank" rel="noopener">' +
+          escapeHTML(text) + "</a>"
+      );
 
       // Inline code
-      html = html.replace(/`([^`]+)`/g, (m, code) => `<code>${escapeHTML(code)}</code>`);
+      html = html.replace(
+        /`([^`]+)`/g,
+        (_, code) => "<code>" + escapeHTML(code) + "</code>"
+      );
 
-      // Strong first, then em
-      html = html.replace(/\*\*(?=\S)(.+?)(?<=\S)\*\*/g, '<strong>$1</strong>');
-      html = html.replace(/__(?=\S)(.+?)(?<=\S)__/g, '<strong>$1</strong>');
-      html = html.replace(/(?<!\*)\*(?=\S)(.+?)(?<=\S)(?<!\*)\*/g, '<em>$1</em>');
-      html = html.replace(/_(?=\S)(.+?)(?<=\S)_/g, '<em>$1</em>');
-      html = html.replace(/~~(?=\S)(.+?)(?<=\S)~~/g, '<del>$1</del>');
+      // Strong (** and __), then emphasis (* and _), then del
+      html = html.replace(
+        /\*\*(?=\S)(.+?)(?<=\S)\*\*/g,
+        "<strong>$1</strong>"
+      );
+      html = html.replace(
+        /__(?=\S)(.+?)(?<=\S)__/g,
+        "<strong>$1</strong>"
+      );
+      html = html.replace(
+        /(?<!\*)\*(?=\S)(.+?)(?<=\S)(?<!\*)\*/g,
+        "<em>$1</em>"
+      );
+      html = html.replace(
+        /_(?=\S)(.+?)(?<=\S)_/g,
+        "<em>$1</em>"
+      );
+      html = html.replace(
+        /~~(?=\S)(.+?)(?<=\S)~~/g,
+        "<del>$1</del>"
+      );
 
-      // Auto-link bare URLs (avoid already linked)
-      html = html.replace(/(^|[\s(>])((https?:\/\/[^\s<>"')]+))(?=[\s<)"']|$)/g,
-        (m, pre, url) => `${pre}<a href="${url}" target="_blank" rel="noopener">${url}</a>`);
+      // Auto-link bare URLs not already inside a tag
+      html = html.replace(
+        /(^|[\s(>])((https?:\/\/[^\s<>"')]+))(?=[\s<)"']|$)/g,
+        (_, pre, url) =>
+          pre + '<a href="' + url +
+          '" target="_blank" rel="noopener">' + url + "</a>"
+      );
 
       return html;
     }
 
-    // Kept for backwards compatibility with inline rendering
-    function markdownToHtml(input){
-      return markdownToInlineHtml(input);
-    }
+    /* ── Notes toggle ─────────────────────────────────────────
+     *
+     * Single implementation used by both the server-flagged
+     * path (notes_is_long) and the deferred-measurement
+     * fallback.  The guard at the top makes it idempotent.
+     * ──────────────────────────────────────────────────────── */
 
-    // Create a notes toggle for a given preview element and full text.
-    function createNotesToggleFor(previewDiv, fullText){
-      if (!previewDiv || previewDiv.parentElement.querySelector('.var-notes-toggle')) return;
-      const notesContainer = previewDiv.parentElement;
-      const fullDiv = document.createElement('div');
-      fullDiv.className = 'var-notes-full';
-      fullDiv.style.display = 'none';
-      fullDiv.textContent = fullText || '';
+    /**
+     * Attach an expand / collapse toggle to a notes preview.
+     *
+     * Idempotent: skips if a toggle button already exists in
+     * the same container.
+     */
+    function createNotesToggle(previewDiv, fullText) {
+      const container = previewDiv.parentElement;
+      if (container.querySelector(SEL.notesToggle)) return;
 
-      const toggleBtn = document.createElement('button');
-      toggleBtn.className = 'var-notes-toggle';
-      toggleBtn.textContent = 'More\u2026';
+      previewDiv.style.display = "-webkit-box";
 
-      let isExpanded = false;
-      toggleBtn.addEventListener('click', (e) => {
-        e.preventDefault(); e.stopPropagation();
-        isExpanded = !isExpanded;
-        if (isExpanded) {
-          previewDiv.style.display = 'none';
-          fullDiv.style.display = 'block';
-          toggleBtn.textContent = 'Less';
-        } else {
-          previewDiv.style.display = '-webkit-box';
-          fullDiv.style.display = 'none';
-          toggleBtn.textContent = 'More\u2026';
-        }
+      const fullDiv = document.createElement("div");
+      fullDiv.className = "var-notes-full";
+      fullDiv.style.display = "none";
+      fullDiv.textContent = fullText || "";
+
+      const btn = document.createElement("button");
+      btn.className = "var-notes-toggle";
+      btn.textContent = TEXT.more;
+
+      let expanded = false;
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        expanded = !expanded;
+        previewDiv.style.display = expanded
+          ? "none"
+          : "-webkit-box";
+        fullDiv.style.display = expanded ? "block" : "none";
+        btn.textContent = expanded ? TEXT.less : TEXT.more;
       });
 
-      // Ensure preview shows clamped style
-      previewDiv.style.display = '-webkit-box';
-      notesContainer.appendChild(fullDiv);
-      notesContainer.appendChild(toggleBtn);
+      container.appendChild(fullDiv);
+      container.appendChild(btn);
     }
 
-    function runDeferredNotesMeasurement(){
-      requestAnimationFrame(()=>{
-        $all('.var-notes-preview').forEach(previewDiv => {
-          try{
-            if (previewDiv.parentElement.querySelector('.var-notes-toggle')) return; // already has toggle
-            if (previewDiv.scrollHeight > previewDiv.clientHeight + 1) {
-              createNotesToggleFor(previewDiv, previewDiv.dataset.fullText || previewDiv.textContent);
-            }
-          }catch(e){}
-        });
-      });
-    }
-
-    function splitMarkdownParagraphs(md){
-      // Split on blank lines into paragraphs; keep single newlines within a paragraph
-      return String(md).trim().split(/\n\s*\n/);
-    }
-
-    function splitNotesPreviewAndDetails(notes){
-      // Split notes into preview (first 3 lines) and details (rest)
-      const lines = String(notes).split('\n');
-      if (lines.length <= 3) return { preview: notes, details: null };
-      const preview = lines.slice(0, 3).join('\n');
-      const details = lines.slice(3).join('\n');
-      return { preview, details };
-    }
-
-    function toCSVRecord(ds,v){ return {
-      yaml_file:v._source_yaml||'unknown',
-      variable_name:v.name||'',
-      notes:v.notes||''
-    }; }
-
-    function computeCategoryCounts(ds){
-      const m=new Map();
-      // Prefer full var map (includes hidden members) when available
-      const allVars = ds.var_map_all || ds.var_map || {};
-      for(const v of Object.values(allVars)){
-        for(const c of (v.categories||[])){ m.set(c,(m.get(c)||0)+1); }
-      }
-      return Array.from(m.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
-    }
-
-    function isGroup(v){ return !!v.is_group; }
-    function isGroupFullySelected(ds, group){
-      // If group is exported as a single CSV row, consider it selected when
-      // the group key is present. Otherwise require all members selected.
-      if (group.csv_expand === 'group'){
-        return state.selected.has(ds.id+'::'+group.name);
-      }
-      return (group.members||[]).every(name => state.selected.has(ds.id+'::'+name));
-    }
-    function selectGroup(ds, group){
-      if (group.csv_expand === 'group'){
-        state.selected.set(ds.id+'::'+group.name, toCSVRecord(ds, group));
-        return;
-      }
-      (group.members||[]).forEach(name=>{
-        const leaf = (ds.var_map_all||ds.var_map||{})[name];
-        if(leaf){ state.selected.set(ds.id+'::'+name, toCSVRecord(ds, leaf)); }
-      });
-    }
-    function deselectGroup(ds, group){
-      if (group.csv_expand === 'group'){
-        state.selected.delete(ds.id+'::'+group.name);
-        return;
-      }
-      (group.members||[]).forEach(name=> state.selected.delete(ds.id+'::'+name));
-    }
-
-    function render(){
-      const app = document.getElementById('app');
-      app.innerHTML = '';
-
-      // state.sections is an array of { heading, datasets: [...] }
-      (state.sections || [{ heading: '', datasets: state.datasets || [] }]).forEach(sec => {
-        const heading = sec.heading || '';
-        if (heading) {
-          const h = document.createElement('h2'); h.textContent = heading; h.style.color = 'var(--brand-primary)'; h.style.marginTop = '1.25rem'; app.appendChild(h);
-        }
-        (sec.datasets || []).forEach(ds => {
-          const section = document.createElement('section');
-          section.className='dataset-card'; section.dataset.datasetId = ds.id; section.id = ds.id;
-
-          // Header with description: prefer info_md; else fall back to info[]
-          const header = document.createElement('div'); header.className='dataset-header';
-
-          let infoHTML = '';
-          if (ds.info_html && String(ds.info_html).trim()){
-            infoHTML = `<div class="dataset-info">${ds.info_html}</div>`;
-          } else if (Array.isArray(ds.info) && ds.info.length){
-            infoHTML = `<div class="dataset-info">${ds.info.map(p => `<p>${markdownToHtml(p)}</p>`).join('')}</div>`;
+    /**
+     * Scan all visible previews and add toggles where the text
+     * is visually clamped (overflow detected).
+     */
+    function measureAndAddToggles() {
+      requestAnimationFrame(() => {
+        $all(SEL.notesPreview).forEach((el) => {
+          if (el.scrollHeight > el.clientHeight + 1) {
+            createNotesToggle(
+              el,
+              el.dataset.fullText || el.textContent
+            );
           }
-
-          header.innerHTML=`
-            <h2 class="dataset-title">${escapeHTML(ds.title||ds.id)}</h2>
-            ${ds.subtitle?`<div class="dataset-subtitle">${escapeHTML(ds.subtitle)}</div>`:''}
-            ${infoHTML}`;
-          section.appendChild(header);
-
-          const toggleWrap = document.createElement('div'); toggleWrap.className='dataset-toggle-wrap';
-          toggleWrap.innerHTML = `
-            <button class="btn dataset-toggle"
-                    data-role="toggle-dataset"
-                    data-dataset-id="${escapeHTML(ds.id)}"
-                    aria-expanded="false">
-              Show variables
-            </button>`;
-          section.appendChild(toggleWrap);
-
-          const body = document.createElement('div'); body.className='dataset-body is-collapsed'; body.id = `body-${ds.id}`;
-          const controls = document.createElement('div'); controls.className='controls';
-          controls.innerHTML=`
-            <input type="search" placeholder="Search… (label, variable, notes)" aria-label="Search variables">
-            <select data-role="filterCat" aria-label="Filter by category"><option value="">All categories</option></select>
-            <div class="info">${(ds.variables||[]).length} items</div>`;
-          body.appendChild(controls);
-
-          const tableWrap = document.createElement('div'); tableWrap.className='table-wrap';
-          tableWrap.innerHTML=`
-            <table>
-              <thead><tr>
-                <th style="width:2rem"><input type="checkbox" data-action="toggle-all"></th>
-                <th>Label</th>
-                <th class="hide-sm">Variable name</th>
-                <th class="hide-sm">Source variable name</th>
-                <th class="hide-sm">Type</th>
-                <th class="hide-sm">Categories</th>
-              </tr></thead>
-              <tbody></tbody>
-            </table>`;
-          body.appendChild(tableWrap);
-          section.appendChild(body);
-
-          const catCounts = computeCategoryCounts(ds);
-          const ddl = controls.querySelector('select[data-role="filterCat"]');
-          for(const [cat,_] of catCounts){ const opt=document.createElement('option'); opt.value=cat; opt.textContent=cat; ddl.appendChild(opt); }
-
-          const tbody = body.querySelector('tbody');
-          (ds.variables||[]).forEach(v=>{
-            v._search = [v.label, v.name, v.notes, ...(v.members||[])].filter(Boolean).join(' ');
-            tbody.appendChild(renderRow(ds, v));
-          });
-
-          // After rows are rendered, run a deferred pass to detect any
-          // visually-clamped previews the server didn't flag and add toggles.
-          runDeferredNotesMeasurement();
-
-          const search = controls.querySelector('input[type="search"]');
-          search.addEventListener('input', ()=>applyFilter(section, ds));
-          ddl.addEventListener('change', ()=>applyFilter(section, ds));
-
-          body.querySelector('[data-action="toggle-all"]').addEventListener('change', (e)=>{
-            const rows = $all('tbody tr', body).filter(r=>r.style.display!=='none');
-            rows.forEach(r=>{
-              const cb=r.querySelector('input[type="checkbox"]');
-              cb.checked=e.target.checked;
-              cb.dispatchEvent(new Event('change'));
-            });
-          });
-
-          const btn = toggleWrap.querySelector('button[data-role="toggle-dataset"]');
-          btn.addEventListener('click', ()=>{
-            const expanded = btn.getAttribute('aria-expanded') === 'true';
-            const next = !expanded;
-            btn.setAttribute('aria-expanded', String(next));
-            btn.textContent = next ? 'Hide variables' : 'Show variables';
-            body.classList.toggle('is-collapsed', !next);
-            // When expanding, run deferred measurement to add toggles for
-            // previews that were rendered while the section was collapsed.
-            if (next) runDeferredNotesMeasurement();
-          });
-
-          app.appendChild(section);
         });
       });
-
-      updateCartUI();
     }
 
-    function renderRow(ds, v){
-      const tr = document.createElement('tr');
-      const key = ds.id+'::'+v.name;
-      tr.dataset.key = key;
+    /* ── Data helpers ───────────────────────────────────────── */
 
-      const labelText = v.is_group ? `${v.label} (${(v.members||[]).length} fields)` : (v.label || v.name);
-      const catsHTML = `<div class="chips">${(v.categories||[]).map(c=>`<span class="chip" data-cat="${escapeHTML(c)}" role="button" tabindex="0" title="Filter by ${escapeHTML(c)}">${escapeHTML(c)}</span>`).join('')}</div>`;
+    function toCSVRecord(ds, v) {
+      return {
+        yaml_file: v._source_yaml || "unknown",
+        variable_name: v.name || "",
+        notes: v.notes || "",
+      };
+    }
 
-      tr.innerHTML = `
-        <td><input type="checkbox" aria-label="Select ${escapeHTML(labelText)}"></td>
-        <td>
-          <div class="var-label">${escapeHTML(labelText)}</div>
-          <div class="var-notes-container"></div>
-        </td>
-        <td class="mono hide-sm">${escapeHTML(v.name)}</td>
-        <td class="mono hide-sm">${escapeHTML(v.source||'')}</td>
-        <td class="hide-sm">${escapeHTML(v.type||'')}</td>
-        <td class="hide-sm">${catsHTML}</td>`;
-
-      // Add notes after rendering (use backend flag `notes_is_long` when present)
-      if (v.notes) {
-        const notesContainer = tr.querySelector('.var-notes-container');
-
-        const previewDiv = document.createElement('div');
-        previewDiv.className = 'var-notes-preview';
-        // Use server-provided preview when available to keep truncation
-        // logic deterministic and synchronized with the toggle state.
-        previewDiv.textContent = (v.notes_preview !== undefined && v.notes_preview !== null) ? v.notes_preview : v.notes;
-        // Store full text on the preview for deferred measurement fallback
-        previewDiv.dataset.fullText = v.notes || '';
-        notesContainer.appendChild(previewDiv);
-
-        const fullDiv = document.createElement('div');
-        fullDiv.className = 'var-notes-full';
-        fullDiv.style.display = 'none';
-        fullDiv.textContent = v.notes;
-
-        const createToggle = () => {
-          // Apply clamping style to preview so it visually truncates
-          previewDiv.style.display = '-webkit-box';
-
-          const toggleBtn = document.createElement('button');
-          toggleBtn.className = 'var-notes-toggle';
-          toggleBtn.textContent = 'More\u2026';
-
-          let isExpanded = false;
-          toggleBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            isExpanded = !isExpanded;
-            if (isExpanded) {
-              previewDiv.style.display = 'none';
-              fullDiv.style.display = 'block';
-              toggleBtn.textContent = 'Less';
-            } else {
-              previewDiv.style.display = '-webkit-box';
-              fullDiv.style.display = 'none';
-              toggleBtn.textContent = 'More\u2026';
-            }
-          });
-
-          notesContainer.appendChild(fullDiv);
-          notesContainer.appendChild(toggleBtn);
-        };
-
-        // Add toggle only when backend flagged the notes as long.
-        if (v.notes_is_long) createToggle();
+    /** Return sorted [category, count] pairs for a dataset. */
+    function computeCategoryCounts(ds) {
+      const counts = new Map();
+      const allVars = ds.var_map_all || ds.var_map || {};
+      for (const v of Object.values(allVars)) {
+        for (const c of v.categories || []) {
+          counts.set(c, (counts.get(c) || 0) + 1);
+        }
       }
+      return Array.from(counts.entries()).sort(
+        (a, b) => a[0].localeCompare(b[0])
+      );
+    }
 
-        // Make category chips clickable: clicking sets the category filter for this dataset
-        try{
-          const chipEls = tr.querySelectorAll('.chip[data-cat]');
-          chipEls.forEach(ch => {
-            ch.style.cursor = 'pointer';
-            ch.addEventListener('click', (e)=>{
-              const cat = ch.dataset.cat;
-              const sectionEl = tr.closest('section');
-              if(!sectionEl) return;
-              const ddl = sectionEl.querySelector('select[data-role="filterCat"]');
-              if(ddl){ ddl.value = cat; }
-              applyFilter(sectionEl, ds);
-            });
-            ch.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); ch.click(); } });
-          });
-        }catch(err){ /* noop */ }
+    /* ── Selection helpers ──────────────────────────────────── */
 
+    function isGroupFullySelected(ds, group) {
+      if (group.csv_expand === "group") {
+        return state.selected.has(ds.id + "::" + group.name);
+      }
+      return (group.members || []).every(
+        (name) => state.selected.has(ds.id + "::" + name)
+      );
+    }
+
+    function selectGroup(ds, group) {
+      if (group.csv_expand === "group") {
+        state.selected.set(
+          ds.id + "::" + group.name,
+          toCSVRecord(ds, group)
+        );
+        return;
+      }
+      const vars = ds.var_map_all || ds.var_map || {};
+      (group.members || []).forEach((name) => {
+        const leaf = vars[name];
+        if (leaf) {
+          state.selected.set(
+            ds.id + "::" + name,
+            toCSVRecord(ds, leaf)
+          );
+        }
+      });
+    }
+
+    function deselectGroup(ds, group) {
+      if (group.csv_expand === "group") {
+        state.selected.delete(ds.id + "::" + group.name);
+        return;
+      }
+      (group.members || []).forEach(
+        (name) => state.selected.delete(ds.id + "::" + name)
+      );
+    }
+
+    /* ── Rendering: helpers ─────────────────────────────────── */
+
+    /** Build HTML for a dataset's descriptive info block. */
+    function buildInfoHTML(ds) {
+      if (ds.info_html && String(ds.info_html).trim()) {
+        return (
+          '<div class="dataset-info">' +
+          ds.info_html +
+          "</div>"
+        );
+      }
+      if (Array.isArray(ds.info) && ds.info.length) {
+        const paras = ds.info
+          .map((p) => "<p>" + markdownToInlineHtml(p) + "</p>")
+          .join("");
+        return (
+          '<div class="dataset-info">' + paras + "</div>"
+        );
+      }
+      return "";
+    }
+
+    /** Populate category <option>s in a <select> element. */
+    function populateCategoryDropdown(ddl, ds) {
+      for (const [cat] of computeCategoryCounts(ds)) {
+        const opt = document.createElement("option");
+        opt.value = cat;
+        opt.textContent = cat;
+        ddl.appendChild(opt);
+      }
+    }
+
+    /** Wire up the checkbox on a variable row. */
+    function attachRowCheckbox(tr, ds, v) {
+      const key = tr.dataset.key;
       const cb = tr.querySelector('input[type="checkbox"]');
-      if (v.is_group) cb.checked = isGroupFullySelected(ds, v); else cb.checked = state.selected.has(key);
+      cb.checked = v.is_group
+        ? isGroupFullySelected(ds, v)
+        : state.selected.has(key);
 
-      cb.addEventListener('change', ()=>{
-        if (v.is_group){
-          if (cb.checked) selectGroup(ds, v); else deselectGroup(ds, v);
+      cb.addEventListener("change", () => {
+        if (v.is_group) {
+          if (cb.checked) selectGroup(ds, v);
+          else deselectGroup(ds, v);
         } else {
-          if (cb.checked) state.selected.set(key, toCSVRecord(ds, v)); else state.selected.delete(key);
+          if (cb.checked) {
+            state.selected.set(key, toCSVRecord(ds, v));
+          } else {
+            state.selected.delete(key);
+          }
         }
         updateCartUI();
-        // Refresh group checkboxes in this dataset
-        const rows = $all('tbody tr', tr.closest('section'));
-        rows.forEach(row=>{
-          const k = row.dataset.key; const vv = (ds._byRow||{})[k];
-          if (vv && vv.is_group){ const c = row.querySelector('input[type="checkbox"]'); c.checked = isGroupFullySelected(ds, vv); }
+
+        // Refresh group checkboxes in the same dataset
+        $all("tbody tr", tr.closest("section")).forEach(
+          (row) => {
+            const vv = (ds._byRow || {})[row.dataset.key];
+            if (vv && vv.is_group) {
+              const c = row.querySelector(
+                'input[type="checkbox"]'
+              );
+              c.checked = isGroupFullySelected(ds, vv);
+            }
+          }
+        );
+      });
+    }
+
+    /** Make category chips clickable filters. */
+    function attachCategoryChipHandlers(tr, ds) {
+      tr.querySelectorAll(SEL.chip).forEach((ch) => {
+        ch.style.cursor = "pointer";
+        ch.addEventListener("click", () => {
+          const sectionEl = tr.closest("section");
+          if (!sectionEl) return;
+          const ddl = sectionEl.querySelector(SEL.filterCat);
+          if (ddl) ddl.value = ch.dataset.cat;
+          applyFilter(sectionEl, ds);
+        });
+        ch.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            ch.click();
+          }
         });
       });
+    }
 
-      ds._byRow = ds._byRow || {}; ds._byRow[key] = v;
+    /* ── Rendering: row ─────────────────────────────────────── */
+
+    /** Create a <tr> for a single variable or group. */
+    function renderRow(ds, v) {
+      const tr = document.createElement("tr");
+      const key = ds.id + "::" + v.name;
+      tr.dataset.key = key;
+
+      const labelText = v.is_group
+        ? v.label + " (" + (v.members || []).length + " fields)"
+        : v.label || v.name;
+
+      const chipsHTML = (v.categories || [])
+        .map(
+          (c) =>
+            '<span class="chip" data-cat="' +
+            escapeHTML(c) +
+            '" role="button" tabindex="0" title="Filter by ' +
+            escapeHTML(c) + '">' +
+            escapeHTML(c) +
+            "</span>"
+        )
+        .join("");
+
+      tr.innerHTML =
+        '<td><input type="checkbox" aria-label="Select ' +
+        escapeHTML(labelText) + '"></td>' +
+        "<td>" +
+        '<div class="var-label">' +
+        escapeHTML(labelText) + "</div>" +
+        '<div class="var-notes-container"></div>' +
+        "</td>" +
+        '<td class="mono hide-sm">' +
+        escapeHTML(v.name) + "</td>" +
+        '<td class="mono hide-sm">' +
+        escapeHTML(v.source || "") + "</td>" +
+        '<td class="hide-sm">' +
+        escapeHTML(v.type || "") + "</td>" +
+        '<td class="hide-sm"><div class="chips">' +
+        chipsHTML + "</div></td>";
+
+      // Render notes with optional expand / collapse toggle
+      if (v.notes) {
+        const container =
+          tr.querySelector(".var-notes-container");
+        const previewDiv = document.createElement("div");
+        previewDiv.className = "var-notes-preview";
+        previewDiv.textContent =
+          v.notes_preview != null
+            ? v.notes_preview
+            : v.notes;
+        previewDiv.dataset.fullText = v.notes;
+        container.appendChild(previewDiv);
+
+        if (v.notes_is_long) {
+          createNotesToggle(previewDiv, v.notes);
+        }
+      }
+
+      attachCategoryChipHandlers(tr, ds);
+      attachRowCheckbox(tr, ds, v);
+
+      ds._byRow = ds._byRow || {};
+      ds._byRow[key] = v;
       return tr;
     }
 
-    function applyFilter(section, ds){
-      const q = section.querySelector('input[type="search"]').value.trim().toLowerCase();
-      const cat = section.querySelector('select[data-role="filterCat"]').value;
-      const rows = $all('tbody tr', section);
-      rows.forEach(r=>{
-        const v = (ds._byRow||{})[r.dataset.key];
-        const blob = (v._search||'').toLowerCase();
-        const hit = !q || blob.includes(q);
-        const catOk = !cat
-          || (v.categories||[]).includes(cat)
-          || (v.is_group && (v.members||[]).some(name => (ds.var_map[name]||{}).categories?.includes(cat)));
-        r.style.display = (hit && catOk) ? '' : 'none';
+    /* ── Rendering: dataset card ──────────────────────────────
+     *
+     * Extracted from the former monolithic render() so each
+     * dataset's DOM construction and event wiring is isolated.
+     * ──────────────────────────────────────────────────────── */
+
+    /** Build a complete dataset card with header, toggle, and
+     *  variable table. */
+    function renderDatasetCard(ds) {
+      const section = document.createElement("section");
+      section.className = "dataset-card";
+      section.dataset.datasetId = ds.id;
+      section.id = ds.id;
+
+      // ── Header ──
+      const header = document.createElement("div");
+      header.className = "dataset-header";
+      header.innerHTML =
+        '<h2 class="dataset-title">' +
+        escapeHTML(ds.title || ds.id) + "</h2>" +
+        (ds.subtitle
+          ? '<div class="dataset-subtitle">' +
+            escapeHTML(ds.subtitle) + "</div>"
+          : "") +
+        buildInfoHTML(ds);
+      section.appendChild(header);
+
+      // ── Collapse / expand toggle ──
+      const toggleWrap = document.createElement("div");
+      toggleWrap.className = "dataset-toggle-wrap";
+
+      const toggleBtn = document.createElement("button");
+      toggleBtn.className = "btn dataset-toggle";
+      toggleBtn.setAttribute("data-role", "toggle-dataset");
+      toggleBtn.setAttribute("data-dataset-id", ds.id);
+      toggleBtn.setAttribute("aria-expanded", "false");
+      toggleBtn.textContent = TEXT.showVars;
+      toggleWrap.appendChild(toggleBtn);
+      section.appendChild(toggleWrap);
+
+      // ── Body (collapsed by default) ──
+      const body = document.createElement("div");
+      body.className = "dataset-body " + CLS.collapsed;
+      body.id = "body-" + ds.id;
+
+      // Controls row
+      const controls = document.createElement("div");
+      controls.className = "controls";
+      controls.innerHTML =
+        '<input type="search" ' +
+        'placeholder="Search\u2026 (label, variable, notes)" ' +
+        'aria-label="Search variables">' +
+        '<select data-role="filterCat" ' +
+        'aria-label="Filter by category">' +
+        '<option value="">All categories</option>' +
+        "</select>" +
+        '<div class="info">' +
+        (ds.variables || []).length + " items</div>";
+      body.appendChild(controls);
+
+      populateCategoryDropdown(
+        controls.querySelector(SEL.filterCat),
+        ds
+      );
+
+      // Variable table
+      const tableWrap = document.createElement("div");
+      tableWrap.className = "table-wrap";
+      tableWrap.innerHTML =
+        "<table><thead><tr>" +
+        '<th style="width:2rem">' +
+        '<input type="checkbox" data-action="toggle-all">' +
+        "</th>" +
+        "<th>Label</th>" +
+        '<th class="hide-sm">Variable name</th>' +
+        '<th class="hide-sm">Source variable name</th>' +
+        '<th class="hide-sm">Type</th>' +
+        '<th class="hide-sm">Categories</th>' +
+        "</tr></thead><tbody></tbody></table>";
+      body.appendChild(tableWrap);
+
+      const tbody = tableWrap.querySelector("tbody");
+      (ds.variables || []).forEach((v) => {
+        v._search = [
+          v.label, v.name, v.notes, ...(v.members || []),
+        ]
+          .filter(Boolean)
+          .join(" ");
+        tbody.appendChild(renderRow(ds, v));
       });
-      section.querySelector('[data-action="toggle-all"]').checked = false;
+
+      section.appendChild(body);
+
+      // ── Event wiring ──
+      controls
+        .querySelector(SEL.search)
+        .addEventListener("input", () =>
+          applyFilter(section, ds)
+        );
+
+      controls
+        .querySelector(SEL.filterCat)
+        .addEventListener("change", () =>
+          applyFilter(section, ds)
+        );
+
+      body
+        .querySelector(SEL.toggleAll)
+        .addEventListener("change", (e) => {
+          $all("tbody tr", body)
+            .filter((r) => r.style.display !== "none")
+            .forEach((r) => {
+              const cb =
+                r.querySelector('input[type="checkbox"]');
+              cb.checked = e.target.checked;
+              cb.dispatchEvent(new Event("change"));
+            });
+        });
+
+      toggleBtn.addEventListener("click", () => {
+        const wasExpanded =
+          toggleBtn.getAttribute("aria-expanded") === "true";
+        const next = !wasExpanded;
+        toggleBtn.setAttribute(
+          "aria-expanded", String(next)
+        );
+        toggleBtn.textContent = next
+          ? TEXT.hideVars
+          : TEXT.showVars;
+        body.classList.toggle(CLS.collapsed, !next);
+        // Deferred measurement after expand to catch clamped
+        // notes that were invisible while collapsed.
+        if (next) measureAndAddToggles();
+      });
+
+      return section;
     }
 
-    function updateCartUI(){
-      const n = state.selected.size; document.getElementById('cart-count').textContent=String(n);
-      document.getElementById('download-csv').disabled = n===0; document.getElementById('clear-selection').disabled = n===0;
-    }
+    /* ── Rendering: main ──────────────────────────────────── */
 
-    function downloadCSV(){
-      const rows = Array.from(state.selected.values()); if (!rows.length) return;
-      const headers=['yaml_file','variable_name','notes'];
-      const csv=[headers.join(',')]
-        .concat(rows.map(r=>headers.map(h=>csvEscape(r[h]??'')).join(',')))
-        .join('\n');
-      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      a.href=url; a.download='predict_variables.csv';
-      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    }
+    function render() {
+      const app = $(SEL.app);
+      app.innerHTML = "";
 
-    function clearSelection(){
-      state.selected.clear();
-      document.querySelectorAll('tbody input[type="checkbox"]').forEach(cb=>cb.checked=false);
+      const sections = state.sections || [
+        { heading: "", datasets: state.datasets || [] },
+      ];
+
+      sections.forEach((sec) => {
+        if (sec.heading) {
+          const h = document.createElement("h2");
+          h.textContent = sec.heading;
+          h.style.color = "var(--brand-primary)";
+          h.style.marginTop = "1.25rem";
+          app.appendChild(h);
+        }
+        (sec.datasets || []).forEach((ds) => {
+          app.appendChild(renderDatasetCard(ds));
+        });
+      });
+
+      measureAndAddToggles();
       updateCartUI();
     }
 
-    window.addEventListener('DOMContentLoaded', ()=>{
-      // Support grouped and legacy flat shapes
+    /* ── Filtering ────────────────────────────────────────── */
+
+    function applyFilter(section, ds) {
+      const q = section
+        .querySelector(SEL.search)
+        .value.trim()
+        .toLowerCase();
+      const cat = section
+        .querySelector(SEL.filterCat).value;
+
+      $all("tbody tr", section).forEach((r) => {
+        const v = (ds._byRow || {})[r.dataset.key];
+        const blob = (v?._search || "").toLowerCase();
+        const matchesText = !q || blob.includes(q);
+        const matchesCat =
+          !cat ||
+          (v.categories || []).includes(cat) ||
+          (v.is_group &&
+            (v.members || []).some(
+              (name) =>
+                (ds.var_map[name] || {})
+                  .categories?.includes(cat)
+            ));
+        r.style.display =
+          matchesText && matchesCat ? "" : "none";
+      });
+
+      section.querySelector(SEL.toggleAll).checked = false;
+    }
+
+    /* ── Cart UI ──────────────────────────────────────────── */
+
+    function updateCartUI() {
+      const n = state.selected.size;
+      $(SEL.cartCount).textContent = String(n);
+      $(SEL.downloadCsv).disabled = n === 0;
+      $(SEL.clearSelection).disabled = n === 0;
+    }
+
+    function downloadCSV() {
+      const rows = Array.from(state.selected.values());
+      if (!rows.length) return;
+
+      const headers = ["yaml_file", "variable_name", "notes"];
+      const csv = [headers.join(",")]
+        .concat(
+          rows.map((r) =>
+            headers.map((h) => csvEscape(r[h] ?? ""))
+              .join(",")
+          )
+        )
+        .join("\n");
+
+      const blob = new Blob([csv], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "predict_variables.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function clearSelection() {
+      state.selected.clear();
+      $all('tbody input[type="checkbox"]').forEach(
+        (cb) => (cb.checked = false)
+      );
+      updateCartUI();
+    }
+
+    /* ── Sidebar TOC ──────────────────────────────────────── */
+
+    /** Build the sidebar table-of-contents and wire up scroll
+     *  highlighting via IntersectionObserver. */
+    function initSidebarToc(dsIndex) {
+      const toc = $(SEL.sidebarToc);
+      if (!toc) return;
+      const tocList = toc.querySelector("ul");
+
+      // Suppresses observer during smooth-scroll animation
+      let ignoreObserver = false;
+
+      function jumpToDataset(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        const topBar = $(SEL.cart);
+        const offset = topBar
+          ? Math.ceil(
+              topBar.getBoundingClientRect().height
+            ) + 8
+          : 16;
+
+        const maxScroll = Math.max(
+          0,
+          document.documentElement.scrollHeight -
+            window.innerHeight
+        );
+        const target = Math.max(
+          0,
+          Math.min(
+            el.getBoundingClientRect().top +
+              window.scrollY -
+              offset,
+            maxScroll
+          )
+        );
+
+        ignoreObserver = true;
+        setTimeout(() => {
+          ignoreObserver = false;
+        }, 700);
+
+        window.scrollTo({ top: target, behavior: "smooth" });
+
+        // Immediately highlight the clicked link
+        toc
+          .querySelectorAll("a")
+          .forEach((x) => x.classList.remove(CLS.active));
+        const link = toc.querySelector(
+          'a[data-target-id="' + id + '"]'
+        );
+        if (link) link.classList.add(CLS.active);
+      }
+
+      // Populate TOC links
+      dsIndex.forEach((d) => {
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        a.href = "#" + d.id;
+        a.textContent = d.title || d.id;
+        a.dataset.targetId = d.id;
+        a.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          jumpToDataset(d.id);
+        });
+        li.appendChild(a);
+        tocList.appendChild(li);
+      });
+
+      // Highlight active section via IntersectionObserver
+      if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            if (ignoreObserver) return;
+            entries.forEach((entry) => {
+              if (!entry.isIntersecting) return;
+              const id = entry.target.id;
+              toc
+                .querySelectorAll("a")
+                .forEach((x) =>
+                  x.classList.remove(CLS.active)
+                );
+              const link = toc.querySelector(
+                'a[data-target-id="' + id + '"]'
+              );
+              if (link) link.classList.add(CLS.active);
+            });
+          },
+          {
+            root: null,
+            rootMargin: "-20% 0px -60% 0px",
+            threshold: 0,
+          }
+        );
+        dsIndex.forEach((d) => {
+          const el = document.getElementById(d.id);
+          if (el) observer.observe(el);
+        });
+      }
+    }
+
+    /* ── Bootstrap ────────────────────────────────────────── */
+
+    function init() {
       const parsed = parseData();
       let sections = [];
       let flat = [];
-      if (Array.isArray(parsed) && parsed.length && parsed[0] && typeof parsed[0] === 'object' && Array.isArray(parsed[0].datasets)){
+
+      if (
+        Array.isArray(parsed) &&
+        parsed.length &&
+        parsed[0] &&
+        typeof parsed[0] === "object" &&
+        Array.isArray(parsed[0].datasets)
+      ) {
         sections = parsed;
-        parsed.forEach(sec => { (sec.datasets||[]).forEach(ds => flat.push(ds)); });
+        parsed.forEach((sec) => {
+          (sec.datasets || []).forEach((ds) =>
+            flat.push(ds)
+          );
+        });
       } else {
-        const dsArray = Array.isArray(parsed) ? parsed : [];
-        sections = [{ heading: '', datasets: dsArray }];
+        const dsArray = Array.isArray(parsed)
+          ? parsed
+          : [];
+        sections = [{ heading: "", datasets: dsArray }];
         flat = dsArray;
       }
 
       state.sections = sections;
       state.datasets = flat;
-      state.datasets.forEach(ds=>{ ds.var_map = ds.var_map || {}; });
-      render();
-      document.getElementById('download-csv').addEventListener('click', downloadCSV);
-      document.getElementById('clear-selection').addEventListener('click', clearSelection);
-
-      // Build dataset index for navigation and TOC
-      const dsIndex = state.datasets.map(d=>({id:d.id,title:d.title||d.id,subtitle:d.subtitle||''}));
-
-      // When a TOC link is clicked we want to temporarily suppress
-      // IntersectionObserver-driven active-state updates so the clicked
-      // link remains highlighted during the smooth scroll animation.
-      let _ignoreObserver = false;
-      function jumpToDataset(id){
-        if(!id) return;
-        const el = document.getElementById(id); if(!el) return;
-        const topBar = document.querySelector('.cart');
-        const offset = topBar ? Math.ceil(topBar.getBoundingClientRect().height) + 8 : 16;
-        let target = el.getBoundingClientRect().top + window.scrollY - offset;
-        // Clamp to valid scroll range so bottom-most links behave consistently
-        const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-        target = Math.max(0, Math.min(target, maxScroll));
-        // Suppress observer updates for the duration of the scroll animation
-        _ignoreObserver = true;
-        // Clear suppression slightly after the expected scroll duration
-        setTimeout(()=>{ _ignoreObserver = false; }, 700);
-
-        window.scrollTo({ top: target, behavior: 'smooth' });
-
-        // Immediately mark the clicked link active so it appears selected
-        // even if the IntersectionObserver hasn't fired yet.
-        try{
-          const toc = document.getElementById('sidebar-toc');
-          if(toc){
-            toc.querySelectorAll('a').forEach(x=>x.classList.remove('active'));
-            const link = toc.querySelector(`a[data-target-id="${id}"]`);
-            if(link) link.classList.add('active');
-          }
-        }catch(e){ /* noop */ }
-      }
-
-      // Populate sidebar TOC and highlight on scroll
-      const toc = document.getElementById('sidebar-toc');
-      const tocList = toc.querySelector('ul');
-      dsIndex.forEach(d=>{
-        const li = document.createElement('li');
-        const a = document.createElement('a');
-        a.href = '#'+d.id; a.textContent = d.title || d.id; a.dataset.targetId = d.id;
-        a.addEventListener('click', (ev)=>{ ev.preventDefault(); jumpToDataset(d.id); });
-        li.appendChild(a); tocList.appendChild(li);
+      state.datasets.forEach((ds) => {
+        ds.var_map = ds.var_map || {};
       });
 
-      // Highlight active section using IntersectionObserver
-      try{
-        const observer = new IntersectionObserver((entries)=>{
-          if (_ignoreObserver) return; // respect suppression window
-          entries.forEach(entry=>{
-            const id = entry.target.id; const link = toc.querySelector(`a[data-target-id="${id}"]`);
-            if(entry.isIntersecting){ toc.querySelectorAll('a').forEach(x=>x.classList.remove('active')); if(link) link.classList.add('active'); }
-          });
-        }, { root: null, rootMargin: '-20% 0px -60% 0px', threshold: 0 });
-        dsIndex.forEach(d=>{ const el = document.getElementById(d.id); if(el) observer.observe(el); });
-      }catch(e){ /* IntersectionObserver not available -> no highlighting */ }
-    });
+      render();
 
+      $(SEL.downloadCsv).addEventListener(
+        "click", downloadCSV
+      );
+      $(SEL.clearSelection).addEventListener(
+        "click", clearSelection
+      );
+
+      initSidebarToc(
+        state.datasets.map((d) => ({
+          id: d.id,
+          title: d.title || d.id,
+        }))
+      );
+    }
+
+    window.addEventListener("DOMContentLoaded", init);
   })();
   </script>
 
