@@ -553,3 +553,23 @@ Update with:
 ```bash
 pip install -r requirements.txt
 ```
+
+---
+
+## Deploy
+
+Requires SSH key authentication configured for the target host (see
+`~/.ssh/config`), such as:
+
+```shell
+Host predict
+  HostName cpanel-new.its.umu.se
+  User predict
+  IdentityFile ~/.ssh/id_ed25519_cPanel
+```
+
+Deploy using:
+```bash
+rsync -av --exclude='variables_browser.html' predict-data-portal/dist/ predict:www/ && \
+  rsync -av predict-data-portal/dist/variables_browser.html predict:www/index.html
+```
