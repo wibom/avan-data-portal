@@ -61,6 +61,7 @@ VARIABLES_CONFIG = CONFIG_DIR / "variables_config.yaml"
 
 TEMPLATE_NAME = "index.html.j2"
 OUTPUT_HTML_NAME = "variables_browser.html"
+OUTPUT_JSON_NAME = "data.json"
 
 INTRO_MD = CONTENT_DIR / "intro.md"
 FOOTER_MD = CONTENT_DIR / "footer.md"
@@ -1242,6 +1243,55 @@ def _render_html(
 
 
 # ──────────────────────────────────────────────────────────────────────
+# JSON export
+# ──────────────────────────────────────────────────────────────────────
+
+def _build_portal_data(
+    datasets: list[_YamlDict],
+    intro_html: str,
+    footer_html: str,
+    provenance_text: str,
+    build_date: str,
+) -> dict[str, Any]:
+    """Assemble the complete portal payload for JSON export.
+
+    Args:
+        datasets: Assembled dataset list (grouped or flat).
+        intro_html: Pre-rendered HTML for the introduction section.
+        footer_html: Pre-rendered HTML for the site footer.
+        provenance_text: Multi-line provenance manifest.
+        build_date: ISO-8601 build timestamp.
+
+    Returns:
+        Dict suitable for serialisation to ``data.json``.
+    """
+    return {
+        "meta": {
+            "build_date": build_date,
+            "git_sha": _get_git_sha(),
+            "provenance": provenance_text,
+        },
+        "intro_html": intro_html,
+        "footer_html": footer_html,
+        "datasets": datasets,
+    }
+
+
+def _export_to_json(data: dict[str, Any], output_path: Path) -> None:
+    """Serialise *data* to a pretty-printed JSON file.
+
+    Args:
+        data: Portal payload dict (from :func:`_build_portal_data`).
+        output_path: Destination path for the ``.json`` file.
+    """
+    output_path.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    logger.info("Wrote %s", output_path)
+
+
+# ──────────────────────────────────────────────────────────────────────
 # Excel export
 # ──────────────────────────────────────────────────────────────────────
 
@@ -1506,17 +1556,25 @@ def _copy_static_files(dist_dir: Path) -> None:
 # Build entry point
 # ──────────────────────────────────────────────────────────────────────
 
-def build(output_dir: Path | None = None) -> None:
+def build(
+    output_dir: Path | None = None,
+    *,
+    export_json: bool = False,
+) -> None:
     """Run the full build pipeline.
 
     1. Load configuration and discover datasets.
     2. Assemble each dataset (normalise, filter, group).
     3. Render HTML and export Excel.
     4. Copy static files to the output directory.
+    5. Optionally write ``data.json`` for use by external apps.
 
     Args:
         output_dir: Override the default output directory
             (``./dist``).  Created automatically if absent.
+        export_json: When ``True``, also write ``data.json``
+            containing the full portal payload (datasets,
+            rendered HTML fragments, build metadata).
     """
     dist_dir = output_dir or DIST_DIR
     dist_dir.mkdir(parents=True, exist_ok=True)
@@ -1630,6 +1688,16 @@ def build(output_dir: Path | None = None) -> None:
     _export_to_excel(datasets, dist_dir / excel_filename, build_date)
     _copy_static_files(dist_dir)
 
+    if export_json:
+        portal_data = _build_portal_data(
+            datasets,
+            intro_html,
+            _load_footer_html(),
+            provenance_text,
+            build_date,
+        )
+        _export_to_json(portal_data, dist_dir / OUTPUT_JSON_NAME)
+
 
 # ──────────────────────────────────────────────────────────────────────
 # CLI
@@ -1654,6 +1722,16 @@ def _parse_args() -> argparse.Namespace:
             "Output directory (default: ./dist). "
             "Created automatically if absent."
         ),
+    )
+    parser.add_argument(
+        "--export-json",
+        action="store_true",
+        default=False,
+        help=(
+            "Also write %(default)s to the output directory. "
+            "The file contains all portal data (datasets, rendered "
+            "HTML content, build metadata) for use by external apps."
+        ).replace("%(default)s", OUTPUT_JSON_NAME),
     )
     verbosity = parser.add_mutually_exclusive_group()
     verbosity.add_argument(
@@ -1685,7 +1763,7 @@ def main() -> None:
         level=level,
     )
 
-    build(output_dir=args.output_dir)
+    build(output_dir=args.output_dir, export_json=args.export_json)
 
 
 if __name__ == "__main__":
