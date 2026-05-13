@@ -3,6 +3,11 @@
 Builds a self-contained **HTML file** and **Excel file** for users to
 explore datasets, search variables, and download selections.
 
+The build can also export all portal data as a standalone **`data.json`**
+file (see [JSON Export](#json-export)), which can be consumed by a
+separate app to recreate the interactive explorer without rebuilding from
+source.
+
 The build is **deterministic**: same inputs → identical output
 (see [Deterministic Builds](#deterministic-builds)).
 
@@ -42,6 +47,7 @@ python build.py
 | Flag | Description |
 |------|-------------|
 | `--output-dir PATH` | Write outputs to *PATH* instead of `./dist` |
+| `--export-json` | Also write `data.json` to the output directory (see [JSON Export](#json-export)) |
 | `--verbose`, `-v` | Show debug-level log messages |
 | `--quiet`, `-q` | Suppress informational messages (warnings only) |
 
@@ -373,6 +379,65 @@ columns:
 | Categories | Variable categories |
 | Grouped | Yes/No (synthetic group variable) |
 | Members | For groups: member variable names |
+
+---
+
+## JSON Export
+
+The `--export-json` flag writes `dist/data.json` (or
+`<output-dir>/data.json`) alongside the normal HTML and Excel outputs.
+The file contains everything a separate app needs to recreate the
+interactive explorer — rendered HTML fragments, all dataset and variable
+data, and build metadata — with no dependency on this repo's source files
+or the Python build toolchain.
+
+```bash
+python build.py --export-json
+```
+
+The variable lists for individual datasets (`.docx` and `.xlsx` files)
+are available in the `static/` directory of this repo and can be linked
+to from a consumer app.
+
+### JSON structure
+
+```json
+{
+  "meta": {
+    "build_date": "2026-05-13T12:00:00",
+    "git_sha": "abc1234...",
+    "provenance": "file sha256\n..."
+  },
+  "intro_html": "<p>...</p>",
+  "footer_html": "<p>...</p>",
+  "datasets": [
+    {
+      "heading": "National board of health and welfare",
+      "datasets": [
+        {
+          "id": "ps_cancer",
+          "title": "National Cancer Register",
+          "subtitle": "...",
+          "info_html": "<p>...</p>",
+          "variables": [ ... ],
+          "var_map": { ... },
+          "var_map_all": { ... }
+        }
+      ]
+    }
+  ]
+}
+```
+
+| Key | Description |
+|-----|-------------|
+| `meta` | Build timestamp, git commit SHA, and file provenance hashes |
+| `intro_html` | Rendered HTML from `content/intro.md` |
+| `footer_html` | Rendered HTML from `content/footer.md` (logo embedded as data URI) |
+| `datasets` | Array of display groups, each with a `heading` and `datasets` list |
+| `variables` | Ordered list of variables/groups for each dataset |
+| `var_map` | Name → variable metadata (non-grouped variables) |
+| `var_map_all` | Name → variable metadata (all variables including group members) |
 
 ---
 
